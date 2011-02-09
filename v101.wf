@@ -1,0 +1,108 @@
+EnableCarry False
+
+AgentsAreFood False
+Barriers [
+  KeyFrames [
+    X1 33.33
+    X2 33.33
+    Z1 -100.0
+    Z2 -100.0
+  ,
+    T 30000
+    X1 33.33
+    X2 33.33
+    Z1 -100.0
+    Z2 -40.0
+  ]
+,
+  KeyFrames [
+    X1 66.67
+    X2 66.67
+    Z1 -100.0
+    Z2 -100.0
+  ,
+    T 30000
+    X1 66.67
+    X2 66.67
+    Z1 -100.0
+    Z2 -40.0
+  ]
+]
+
+Domains [
+  BrickPatches [
+    BrickCount 100
+    CenterX 0.5
+    CenterZ 0.75
+    SizeX 1.0
+    SizeZ 0.05
+  ]
+  CenterX 0.5
+  CenterZ 0.5
+  FoodPatches [
+    CenterX 0.166667
+    CenterZ 0.25
+    FoodFraction 0.333333
+    FoodRate 0.1
+    InitFoodFraction 1.0
+    MaxFoodFraction 1.0
+    MaxFoodGrownFraction 1.0
+    MinFoodFraction 1.0
+    OnFraction 0.333333
+    Period 1800
+    RemoveFood True
+    SizeX 0.333333
+    SizeZ 0.5
+  ,
+    CenterX 0.5
+    CenterZ 0.25
+    FoodFraction 0.333333
+    FoodRate 0.1
+    InitFoodFraction 1.0
+    MaxFoodFraction 1.0
+    MaxFoodGrownFraction 1.0
+    MinFoodFraction 1.0
+    OnFraction 0.333333
+    Period 1800
+    Phase 0.333333
+    RemoveFood True
+    SizeX 0.333333
+    SizeZ 0.5
+  ,
+    CenterX 0.833333
+    CenterZ 0.25
+    FoodFraction 0.333333
+    FoodRate 0.1
+    InitFoodFraction 1.0
+    MaxFoodFraction 1.0
+    MaxFoodGrownFraction 1.0
+    MinFoodFraction 1.0
+    OnFraction 0.333333
+    Period 1800
+    Phase 0.666667
+    RemoveFood True
+    SizeX 0.333333
+    SizeZ 0.5
+  ]
+  FoodRate 0.1
+  InitAgentsFraction 1.0
+  InitFoodFraction 1.0
+  InitSeedsFraction 1.0
+  MaxAgentsFraction 1.0
+  MaxFoodFraction 1.0
+  MaxFoodGrownFraction 1.0
+  MinAgentsFraction 1.0
+  MinFoodFraction 1.0
+  ProbabilityOfMutatingSeeds 1.0
+  SizeX 1.0
+  SizeZ 1.0
+]
+MaxFood 90
+MaxSteps 40000
+MinMateEnergyFraction 0.5
+NumDepletionSteps 100
+PairFrequency 1
+RatioBarrierPositions False
+RecordGeneStats False
+RecordMovie False
+SeedMutationProbability 1.0

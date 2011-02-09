@@ -1,0 +1,1282 @@
+#!/usr/bin/python
+
+CurrentVersion=2
+
+### Configurable parameters
+OutputFilename2='MetricHist.plt'
+
+#CALC_COMPLEXITY_OVER_DIRECTORY="./CalcComplexityOverDirectory.sh"
+#### Don't modify anything beneath here unless you know what you're doing
+import algorithms
+import getopt, glob, string, sys, os
+import common_functions
+from common_functions import err, warn, list_difference, list_intersection
+import common_metric
+import datalib
+import networkx as nx
+import networkx_extensions as nxe
+import numpy
+import datetime
+import bct
+
+####################################################################################
+###
+### Global variables
+###
+### Note:  One more global is defined below, after the functions is refers to
+###
+####################################################################################
+OutputFilename = common_metric.FILENAME_AVR
+NUMBINS = common_metric.DEFAULT_NUMBINS
+DefaultRecent = 'Recent'
+LEGACY_MODES = ['force','prefer','off']
+LegacyMode = 'off'
+DEFAULT_LENGTH_METRIC = 'cl'
+DEFAULT_NUM_RANDOM = '10'
+DEFAULT_PRESERVATION = 'wp'
+SafeMode = False
+Threshold = 0.0
+OverwriteEpochMetrics = False
+OverwriteAvrMetrics = False
+NUM_ITER = 5  # number of times links are randomized in randmio* routines (5 suggested by Mika)
+EpochList = []
+G_py = {}
+G_set = {}
+G_size = {}
+
+
+####################################################################################
+###
+### Classes
+###
+####################################################################################
+class Graph(object):
+	def __init__(self, connection = None):
+		self.connection = connection  # connection matrix if 'bct'; graph object if 'nx'
+		self.distance = None  # distance matrix if 'bct' and computed (not used for 'nx')
+
+class GraphSet(object):
+	def __init__(self, connection = None):
+		self.graph = Graph(connection)
+		self.rand_graphs = []
+
+
+####################################################################################
+###
+### FUNCTION __initialize_graphs()
+###
+####################################################################################
+def __initialize_graphs():
+	global G_py, G_set, G_size
+	
+	G_py = {}
+	for neuron_set in common_metric.NEURON_SETS:
+		G_py[neuron_set] = {}
+		for graph_type in common_metric.GRAPH_TYPES:
+			G_py[neuron_set][graph_type] = {}
+			for link_type in common_metric.LINK_TYPES:
+				G_py[neuron_set][graph_type][link_type] = []
+
+	G_set = {}
+	for package in common_metric.PACKAGES:
+		G_set[package] = {}
+		for neuron_set in common_metric.NEURON_SETS:
+			G_set[package][neuron_set] = {}
+			for graph_type in common_metric.GRAPH_TYPES:
+				G_set[package][neuron_set][graph_type] = {}
+				for link_type in common_metric.LINK_TYPES:
+					G_set[package][neuron_set][graph_type][link_type] = None
+
+	G_size = {}
+	for neuron_set in common_metric.NEURON_SETS:
+		G_size[neuron_set] = {}
+		for graph_type in common_metric.GRAPH_TYPES:
+			G_size[neuron_set][graph_type] = {}
+			for link_type in common_metric.LINK_TYPES:
+				G_size[neuron_set][graph_type][link_type] = []	# will be node_count, link_count
+		
+
+####################################################################################
+###
+### FUNCTION __read_graphs()
+###
+####################################################################################
+def __read_graphs(anatomy_file):
+	global G_py
+
+	G_py['a']['wd']['w'], G_py['p']['wd']['w'], header = common_metric.read_anatomy(anatomy_file)
+	
+	return header
+
+
+####################################################################################
+###
+### FUNCTION __free_graphs()
+###
+####################################################################################
+def __free_graphs():
+	global G_set
+	
+	for neuron_set in common_metric.NEURON_SETS:
+		for graph_type in common_metric.GRAPH_TYPES:
+			for link_type in common_metric.LINK_TYPES:
+				g_set = G_set['bct'][neuron_set][graph_type][link_type]
+				if g_set:
+					bct.gsl_free(g_set.graph.connection)
+					if g_set.graph.distance:
+						bct.gsl_free(g_set.graph.distance)
+					for graph in g_set.rand_graphs:
+						bct.gsl_free(graph.connection)
+						if graph.distance:
+							bct.gsl_free(graph.distance)
+					G_set['bct'][neuron_set][graph_type][link_type] = None
+	
+
+####################################################################################
+###
+### FUNCTION __get_py_graph()  # creates python graphs as needed from original 'wd'
+###
+####################################################################################
+def __get_py_graph(neuron_set, graph_type, link_type):
+	global G_py
+
+	if not G_py[neuron_set][graph_type]['w']:
+		# Have to make this type of py graph
+		if graph_type == 'bu':
+			G_py[neuron_set][graph_type]['w'] = algorithms.wd_to_bu(G_py[neuron_set]['wd']['w'], Threshold)
+		elif graph_type == 'bd':
+			G_py[neuron_set][graph_type]['w'] = algorithms.wd_to_bd(G_py[neuron_set]['wd']['w'], Threshold)
+		elif graph_type == 'wu':
+			G_py[neuron_set][graph_type]['w'] = algorithms.wd_to_wu(G_py[neuron_set]['wd']['w'])
+		else:
+			err('trying to get py_graph of unknown type: %s' % graph_type)	# shouldn't be possible
+	if not G_py[neuron_set][graph_type][link_type] and link_type == 'd':  # need a distance connection matrix
+		if 'b' in graph_type:  # it's a binary graph, so no need to invert (weights & distances are both either zero or one)
+			G_py[neuron_set][graph_type]['d'] = G_py[neuron_set][graph_type]['w']
+		else:
+			G_py[neuron_set][graph_type]['d'] = algorithms.w_to_d(G_py[neuron_set][graph_type]['w'])
+	return G_py[neuron_set][graph_type][link_type]
+
+
+####################################################################################
+###
+### FUNCTION __get_graph_set()	# creates graphs of the appropriate type as needed
+###
+###		package is 'nx' or 'bct', for NetworkX or Brain Connectivity Toolbox
+###		neuron_set is 'a' or 'p', for all neurons or processing neurons
+###		graph_type is 'bu', 'bd', 'wu', or 'wd', for binary/weighted, undirected/directed
+###		link_type is 'w' or 'd', for weight or distance
+###
+####################################################################################
+def __get_graph_set(package, neuron_set, graph_type, link_type):
+	global G_set
+	
+	if not G_set[package][neuron_set][graph_type][link_type]:
+		# not cached, so have to create it from the Python graph
+		g_py = __get_py_graph(neuron_set, graph_type, link_type)
+		if package == 'nx':
+			g_npy = numpy.matrix(g_py)
+			if graph_type == 'bd' or graph_type == 'wd':
+				nx_graph_type = nx.DiGraph()
+			else:
+				nx_graph_type = nx.Graph()
+			connection = nx.from_numpy_matrix(g_npy, nx_graph_type)
+		elif package == 'bct':
+			connection = bct.to_gslm(g_py)
+		else:
+			err('unknown package type %s' % package)  #	 shouldn't be possible
+		
+		g_set = GraphSet(connection)
+		G_set[package][neuron_set][graph_type][link_type] = g_set
+	
+	return G_set[package][neuron_set][graph_type][link_type]
+	
+
+####################################################################################
+###
+### FUNCTION __get_graph_size()	 # caches and returns graph node_count, link_count
+###
+####################################################################################
+def __get_graph_size(neuron_set, graph_type, link_type):
+	global G_size
+
+	if not G_size[neuron_set][graph_type][link_type]:
+		g_py = __get_py_graph(neuron_set, graph_type, link_type)
+		G_size[neuron_set][graph_type][link_type].append(len(g_py))	 # node count
+		directed = 'd' in graph_type
+		G_size[neuron_set][graph_type][link_type].append(algorithms.count_edges(g_py, directed=directed))	 # edge count
+
+	return G_size[neuron_set][graph_type][link_type][0], G_size[neuron_set][graph_type][link_type][1]
+
+
+####################################################################################
+###
+### FUNCTION __get_distance_matrix()
+###
+####################################################################################
+def __get_distance_matrix(graph, package, weighted):
+	if graph.distance:
+		dist = graph.distance  # already computed, so just use it
+	else:
+		if package == 'bct':
+			if weighted:
+				dist = bct.distance_wei(graph.connection)
+			else:
+				dist = bct.distance_bin(graph.connection)
+		elif package == 'nx':
+			err('Distance matrix not implementd for NetworkX (though it could be)')
+		else:
+			err('Unknown package type: '+str(package))
+	
+		graph.distance = dist
+	
+	return dist
+
+
+####################################################################################
+###
+### FUNCTION __make_random_graph()
+###
+####################################################################################
+def __make_random_graph(g_set, package, neuron_set, graph_type, link_type, preserving):
+	num_nodes, num_links = __get_graph_size(neuron_set, graph_type, link_type)
+	if package == 'nx':
+		if preserving == 'np':
+			g = nx.gnm_random_graph(num_nodes, num_links)
+		else:
+			err('NetworkX does not support the generation of random graphs preserving weights or degrees/strength')
+	else:
+		if preserving == 'np':	# not preserving anything
+			if graph_type == 'bu':
+				g = bct.makerandCIJ_bu(num_nodes, num_links)
+			elif graph_type == 'bd':
+				g = bct.makerandCIJ_bd(num_nodes, num_links)
+			elif graph_type == 'wu':
+				g = bct.makerandCIJ_wu(num_nodes, num_links, 0.0, 1.0)
+			elif graph_type == 'wd':
+				g = bct.makerandCIJ_wd(num_nodes, num_links, 0.0, 1.0)
+			else:
+				err('unknown graph type %s', graph_type)
+		elif preserving == 'wp':  # weight-preserving
+			if graph_type == 'bu':
+				g = bct.makerandCIJ_bd(num_nodes, num_links)  # wp == np for binary graphs
+			elif graph_type == 'bd':
+				g = bct.makerandCIJ_bd(num_nodes, num_links)  # wp == np for binary graphs
+			elif graph_type == 'wu':
+				g = bct.makerandCIJ_wu_wp(g_set.graph.connection)
+			elif graph_type == 'wd':
+				g = bct.makerandCIJ_wd_wp(g_set.graph.connection)
+			else:
+				err('unknown graph type %s', graph_type)
+		elif preserving == 'dp':  # degree-preserving
+			if graph_type == 'bu':
+				g = bct.randmio_und(g_set.graph.connection, NUM_ITER)
+			elif graph_type == 'bd':
+				g = bct.makerandCIJdegreesfixed(g_set.graph.connection)
+			elif graph_type == 'wu':
+				g = bct.randmio_und(g_set.graph.connection, NUM_ITER)
+			elif graph_type == 'wd':
+				g = bct.randmio_dir(g_set.graph.connection, NUM_ITER)
+			else:
+				err('unknown graph type %s', graph_type)
+		else:
+			err('unknown preservation type %s', preserving)
+	
+	graph = Graph(g)
+	
+	return graph
+
+
+####################################################################################
+###
+### FUNCTION __get_random_graph()
+###
+####################################################################################
+def __get_random_graph(g_set, package, neuron_set, graph_type, link_type, preserving, index):
+	if index < len(g_set.rand_graphs):
+		graph = g_set.rand_graphs[index]
+	else:
+		graph = __make_random_graph(g_set, package, neuron_set, graph_type, link_type, preserving)
+		g_set.rand_graphs.append(graph)
+	
+	return graph
+
+
+####################################################################################
+###
+### FUNCTION clustering_coefficient()
+###
+####################################################################################
+def clustering_coefficient(neuron_set, graph_type, random, preserving, index):
+	link_type = 'w'	 # weight (not distance)
+	package = 'bct'	 # 'bct' or 'nx'
+	g_set = __get_graph_set(package, neuron_set, graph_type, link_type)
+	if random:
+		graph = __get_random_graph(g_set, package, neuron_set, graph_type, link_type, preserving, index)
+	else:
+		graph = g_set.graph
+	weighted = 'w' in graph_type
+	if package == 'nx':
+		if weighted:
+			err('NetworkX does not implement clustering coefficient for weighted graphs')
+		else:
+			cc = nx.average_clustering(graph.connection)
+	elif package == 'bct':
+		if graph_type == 'bu':
+			ccv_gsl = bct.clustering_coef_bu(graph.connection)
+		elif graph_type == 'bd':
+			ccv_gsl = bct.clustering_coef_bd(graph.connection)
+		elif graph_type == 'wu':
+			ccv_gsl = bct.clustering_coef_wu(graph.connection)
+		elif graph_type == 'wd':
+			ccv_gsl = bct.clustering_coef_wd(graph.connection)
+		else:
+			err('Unknown graph_type: '+str(graph_type))
+		ccv = bct.from_gsl(ccv_gsl)
+		bct.gsl_free(ccv_gsl)
+		cc = sum(ccv) / len(ccv)
+	else:
+		err('Unknown package type: '+str(package))
+
+	return cc
+
+
+####################################################################################
+###
+### FUNCTION clustering_coefficient_distance()
+###
+####################################################################################
+def clustering_coefficient_distance(neuron_set, graph_type, random, preserving, index):
+	link_type = 'd'	 # distance (not distweightance)
+	package = 'bct'	 # 'bct' or 'nx'
+	g_set = __get_graph_set(package, neuron_set, graph_type, link_type)
+	if random:
+		graph = __get_random_graph(g_set, package, neuron_set, graph_type, link_type, preserving, index)
+	else:
+		graph = g_set.graph
+	weighted = 'w' in graph_type
+	if package == 'nx':
+		if weighted:
+			err('NetworkX does not implement clustering coefficient for weighted graphs')
+		else:
+			cc = nx.average_clustering(graph.connection)
+	elif package == 'bct':
+		if graph_type == 'bu':
+			ccv_gsl = bct.clustering_coef_bu(graph.connection)
+		elif graph_type == 'bd':
+			ccv_gsl = bct.clustering_coef_bd(graph.connection)
+		elif graph_type == 'wu':
+			ccv_gsl = bct.clustering_coef_wu(graph.connection)
+		elif graph_type == 'wd':
+			ccv_gsl = bct.clustering_coef_wd(graph.connection)
+		else:
+			err('Unknown graph_type: '+str(graph_type))
+		ccv = bct.from_gsl(ccv_gsl)
+		bct.gsl_free(ccv_gsl)
+		cc = sum(ccv) / len(ccv)
+	else:
+		err('Unknown package type: '+str(package))
+
+	return cc
+
+
+####################################################################################
+###
+### FUNCTION normalized_path_length()
+###
+####################################################################################
+def normalized_path_length(neuron_set, graph_type, random, preserving, index):
+	link_type = 'd'	 # distance (not weight)
+	package = 'bct'  # 'bct' or 'nx'
+	g_set = __get_graph_set(package, neuron_set, graph_type, link_type)
+	if random:
+		graph = __get_random_graph(g_set, package, neuron_set, graph_type, link_type, preserving, index)
+	else:
+		graph = g_set.graph
+	weighted = 'w' in graph_type
+	d = __get_distance_matrix(graph, package, weighted)
+	npl = bct.normalized_path_length(d, wmax = 1.0)
+
+	return npl
+
+
+####################################################################################
+###
+### FUNCTION characteristic_path_length()
+###
+####################################################################################
+def characteristic_path_length(neuron_set, graph_type, random, preserving, index):
+	link_type = 'd'	 # distance (not weight)
+	package = 'bct'	 # 'bct' or 'nx'
+	g_set = __get_graph_set(package, neuron_set, graph_type, link_type)
+	weighted = 'w' in graph_type
+	if random:
+		graph = __get_random_graph(g_set, package, neuron_set, graph_type, link_type, preserving, index)
+	else:
+		graph = g_set.graph
+	if package == 'nx':
+		cpl = nxe.characteristic_path_length(graph.connection, weighted=weighted)
+	else:
+		d = __get_distance_matrix(graph, package, weighted)
+		cpl = bct.charpath_lambda(d)
+	return cpl
+
+
+####################################################################################
+###
+### FUNCTION connectivity_length()
+###
+####################################################################################
+def connectivity_length(neuron_set, graph_type, random, preserving, index):
+	link_type = 'd'	 # distance (not weight)
+	package = 'bct'	 # 'bct' or 'nx'
+	g_set = __get_graph_set(package, neuron_set, graph_type, link_type)
+	if random:
+		graph = __get_random_graph(g_set, package, neuron_set, graph_type, link_type, preserving, index)
+	else:
+		graph = g_set.graph
+	weighted = 'w' in graph_type
+	if package == 'nx':
+		cl = nxe.connectivity_length(graph.connection, weighted=weighted)
+	else:
+		d = __get_distance_matrix(graph, package, weighted)
+		cl = bct.connectivity_length(graph.connection)
+	
+	return cl
+
+
+####################################################################################
+###
+### FUNCTION newman_modularity()
+###
+####################################################################################
+def newman_modularity(neuron_set, graph_type, random, preserving, index):
+	link_type = 'w'	 # weight (not distance)
+	g_set = __get_graph_set('bct', neuron_set, graph_type, link_type)
+	if random:
+		graph = __get_random_graph(g_set, 'bct', neuron_set, graph_type, link_type, preserving, index)
+	else:
+		graph = g_set.graph
+	if 'd' in graph_type:
+		nm = bct.modularity_dir(graph.connection)
+	else:
+		nm = bct.modularity_und(graph.connection)
+
+	return nm
+
+
+####################################################################################
+###
+### FUNCTION louvain_modularity()
+###
+####################################################################################
+def louvain_modularity(neuron_set, graph_type, random, preserving, index):
+	link_type = 'w'	 # weight (not distance)
+	g_set = __get_graph_set('bct', neuron_set, graph_type, link_type)
+	if random:
+		graph = __get_random_graph(g_set, 'bct', neuron_set, graph_type, link_type, preserving, index)
+	else:
+		graph = g_set.graph
+	if 'd' in graph_type:
+		err('No directed version of Louvain modularity exists in BCT')
+	else:
+		lm = bct.modularity_und_louvain(graph.connection)
+
+	return lm
+
+
+####################################################################################
+###
+### FUNCTION motif_3()
+###
+####################################################################################
+def motif_3(neuron_set, graph_type, random, preserving, index):
+	link_type = 'w'	 # weight (not distance)
+	g_set = __get_graph_set('bct', neuron_set, graph_type, link_type)
+	if random:
+		graph = __get_random_graph(g_set, 'bct', neuron_set, graph_type, link_type, preserving, index)
+	else:
+		graph = g_set.graph
+	if 'b' in graph_type:
+		m3_freq_bct = bct.motif3struct_bin(graph.connection)
+		m3_freq = bct.from_gsl(m3_freq_bct)
+		bct.gsl_free(m3_freq_bct)
+	else:
+		err('Weighted 3-node motifs not yet implemented')
+		#m3_freq_bct = bct.motif3struct_wei(graph.connection)
+
+	return m3_freq
+
+
+####################################################################################
+###
+### FUNCTION node_count()
+###
+####################################################################################
+def node_count(neuron_set, graph_type, random, preserving, index):
+	link_type = 'w'	 # weight (not distance)
+	nc, ec = __get_graph_size(neuron_set, graph_type, link_type)
+
+	return nc
+
+
+####################################################################################
+###
+### FUNCTION edge_count()
+###
+####################################################################################
+def edge_count(neuron_set, graph_type, random, preserving, index):
+	link_type = 'w'	 # weight (not distance)
+	nc, ec = __get_graph_size(neuron_set, graph_type, link_type)
+
+	return ec
+
+
+####################################################################################
+###
+### This global cannot be defined until the functions it refers to have been defined
+###
+####################################################################################
+Metric_Function = {'cc' : clustering_coefficient,
+				   'ccd': clustering_coefficient_distance,  # cc based on 'd' instead of 'w'
+				   'npl': normalized_path_length,
+				   'cpl': characteristic_path_length,
+				   'cl' : connectivity_length,
+				   'nm' : newman_modularity,
+				   'lm' : louvain_modularity,
+				   'm3' : motif_3,
+				   'nc' : node_count,
+				   'ec' : edge_count}
+
+
+####################################################################################
+###
+### FUNCTION small_world_index()
+###
+####################################################################################
+def small_world_index(timestep_directory, length_metric, randomization, distance):
+	def __list_division(a,b):
+		assert(len(a) == len(b))
+		c = []
+		for i in range(len(a)):
+			if b[i] == 0:
+				c.append(0.0)
+			else:
+				c.append(float(a[i])/float(b[i]))
+		return c
+
+	# Unpack the length_metric
+	pieces = length_metric.split('_')
+	neuron_set = pieces[1]
+	graph_type = pieces[2]
+	
+	# Define the metrics and files that will be needed
+	if distance:
+		cc_metric = 'ccd'
+	else:
+		cc_metric = 'cc'
+	sw_metrics = [cc_metric+'_'+neuron_set+'_'+graph_type,
+				  cc_metric+'_'+neuron_set+'_'+graph_type+randomization,
+				  length_metric,
+				  length_metric+randomization]
+	sw_metric_files = ['metric_'+sw_metrics[0]+'.plt',
+					   'metric_'+sw_metrics[1]+'.plt',
+					   'metric_'+sw_metrics[2]+'.plt',
+					   'metric_'+sw_metrics[3]+'.plt']
+
+	sw_files = []
+	for e in sw_metric_files:
+		temp_file = os.path.join(timestep_directory, e)
+		sw_files.append(temp_file)
+
+	metric_files = glob.glob(os.path.join(timestep_directory, "*.plt"))
+
+	# Make sure we have all the files we need
+	if common_functions.list_intersection(sw_files, metric_files) != sw_files:
+		err('Must have actual and random clustering coefficient and characteristic path length to calculate small world index!')
+		return []  # not executed because err() exits
+	else:
+		metric_data = []
+		for i in range(len(sw_files)):
+			file = sw_files[i]
+			metric = sw_metrics[i]
+			try:
+				table = datalib.parse(file)[metric]
+			except MissingTableError, x:
+				err('Unable to find metric %s in file %s' % metric, file)
+				return []  # not executed because err() exits
+			try:
+				data = table.getColumn('Mean').data
+			except KeyError, x:	 # Maybe it's of an older format
+				data = table.getColumn('Metric').data
+			metric_data.append(data)	 # So metric_data = [cc,cc_random,length,length_random]
+
+		if len(metric_data[0]) != len(metric_data[1]):
+			print 'small_world_index: mismatched %s and %s vectors' % (sw_metrics[0], sw_metrics[1])
+		elif len(metric_data[2]) != len(metric_data[3]):
+			print 'small_world_index: mismatched %s and %s vectors' % (sw_metrics[2], sw_metrics[3])
+		elif len(metric_data[0]) != len(metric_data[2]):
+			print 'small_world_index: mismatched %s and %s vectors' % (sw_metrics[0], sw_metrics[2])
+
+		g = __list_division(metric_data[0], metric_data[1])
+		l = __list_division(metric_data[2], metric_data[3])
+		s = __list_division(g, l)
+		
+		return s
+
+
+####################################################################################
+###
+### main()
+###
+####################################################################################
+def main():
+	#check_environment()
+
+	metrics, recent_type, arg_paths = parse_args(sys.argv[1:])
+	
+	bct.set_safe_mode(SafeMode)
+
+	recent_subpath = os.path.join('brain', recent_type)
+	try:
+		run_paths = common_functions.find_run_paths(arg_paths,
+								recent_subpath)
+	except common_functions.InvalidDirError, e:
+		show_usage(str(e))
+
+	recent_dirs = map(lambda x: os.path.join(x, recent_subpath),
+			  run_paths)
+
+	for recent_dir in recent_dirs:
+		analyze_recent_dir(metrics,
+				   recent_dir)
+
+	print "Done!"
+	return 0
+
+####################################################################################
+###
+### FUNCTION check_environment()
+###
+####################################################################################
+def check_environment():
+	global CALC_COMPLEXITY
+
+	CALC_COMPLEXITY = common_functions.pw_env('complexity')
+
+####################################################################################
+###
+### FUNCTION parse_args()
+###
+####################################################################################
+def parse_args(argv):
+	global NUMBINS, LegacyMode, OverwriteEpochMetrics, OverwriteAvrMetrics, SafeMode, EpochList
+
+	if len(argv) == 0:
+		show_usage()
+
+	metrics = common_metric.DEFAULT_METRICS
+
+	recent_type = DefaultRecent
+
+	short = 'oOsd:v:e:'
+	long = []
+
+	try:
+		opts, args = getopt.getopt(argv, short, long)
+	except getopt.GetoptError, e:
+		show_usage(str(e))
+
+	for opt, value in opts:
+		opt = opt.strip('-')
+
+		if opt == 'd':
+			try:
+				recent_type = common_functions.expand_abbreviations( value,
+											 common_functions.RECENT_TYPES,
+											 case_sensitive = False )
+			except common_functions.IllegalAbbreviationError, x:
+				err(str(x))
+		elif opt == 'v':
+			metrics = value.split(',')
+		elif opt == 'o':
+			OverwriteAvrMetrics = True
+		elif opt == 'O':
+			OverwriteEpochMetrics = True
+			OverwriteAvrMetrics = True
+		elif opt == 'e':
+			EpochList = value.split(',')
+			for epoch in EpochList:
+				if not epoch.isdigit():
+					err('Epochs must be specified as numbers')
+		elif opt == 's':
+			SafeMode = True
+##		elif opt == 'b' or opt == 'bins':
+##			try:
+##				NUMBINS = int(value)
+##			except:
+##				show_usage("Invalid integer argument for --bins (%s)" % value)
+		else:
+			assert(False)
+
+	if len(args) == 0:
+		show_usage('Must specify run/run-parent directory.')
+	
+	metric_root_types = []
+	for i in range(len(metrics)):
+		metric = metrics[i]
+		# allow use of _r instead of _ran (and fix a common user error)
+		if '_r_' in metric:
+			metric = metric.replace('_r_', '_ran_')
+			metrics[i] = metric
+		elif metric[-2:] == '_r':
+			metric += 'an'
+			metrics[i] = metric
+		details = metric.split('_')
+		root = details[0]
+		# apply default random settings
+		if '_ran' in metric or (root == 'swi' or root == 'swid'):
+			if (root == 'swi' or root == 'swid') and len(details) < 4:
+				metric += '_' + DEFAULT_LENGTH_METRIC
+			if len(details) < 5:
+				metric += '_' + DEFAULT_NUM_RANDOM
+			if len(details) < 6:
+				metric += '_' + DEFAULT_PRESERVATION
+			metrics[i] = metric
+		if root not in metric_root_types:
+			metric_root_types.append(root)
+	if common_functions.list_difference(metric_root_types, common_metric.METRIC_ROOT_TYPES):
+		show_usage('Unknown metric requested')
+
+	paths = list(args)
+
+	return metrics, recent_type, paths
+
+####################################################################################
+###
+### analyze_recent_dir()
+###
+####################################################################################
+def analyze_recent_dir(metrics, recent_dir):	
+	try:
+		metrics_avail = datalib.parse(os.path.join(recent_dir, OutputFilename)).keys()
+	except IOError:
+		metrics_avail = []
+	
+	if OverwriteAvrMetrics:
+		metrics_have = []
+	else:
+		metrics_have = metrics_avail
+
+	metrics_remaining = common_functions.list_difference(metrics, metrics_have)
+	
+	dependent_metrics = []
+	for metric in metrics_remaining:
+		details = metric.split('_')
+		root = details[0]
+		if root == 'swi' or root == 'swid':
+			neuron_set = details[1]
+			graph_type = details[2]
+			length_metric = details[3]
+			num_samples = details[4]
+			preserving = details[5]
+			for required_root in ['cc', length_metric]:
+				required_metric = required_root + '_' + neuron_set + '_' + graph_type
+				if required_metric not in metrics_avail and \
+				   required_metric not in metrics_remaining and \
+				   required_metric not in dependent_metrics:
+					dependent_metrics.append(required_metric)
+				required_metric_random = required_metric + '_ran_' + num_samples + '_' + preserving
+				if required_metric_random not in metrics_avail and \
+				   required_metric_random not in metrics_remaining and \
+				   required_metric_random not in dependent_metrics:
+					dependent_metrics.append(required_metric_random)
+
+	if dependent_metrics:
+		print 'To calculate swi must also calculate', dependent_metrics
+		metrics_remaining += dependent_metrics
+	
+	if metrics_remaining:
+		__analyze_recent_dir(metrics_remaining, recent_dir)
+
+
+
+####################################################################################
+###
+### __analyze_recent_dir()
+###
+####################################################################################
+def __analyze_recent_dir(metrics, recent_dir):
+	
+	outputpath = os.path.join(recent_dir, OutputFilename)						
+	
+	print "- recent directory='%s'" %(recent_dir)
+	print "- output='%s'" % (outputpath)
+
+	#-----------------------------------------------------------------------------------
+	#--
+	#-- Find epoch/timestep directories
+	#--
+	#-----------------------------------------------------------------------------------
+	timesteps = []
+	# list all of the timesteps, make sure they are all integers (and directories), then sort them by number.
+	for potential_timestep in os.listdir( recent_dir ):
+		if not potential_timestep.isdigit():
+			continue	# if timestep isn't a digit, skip it.
+		if not os.path.isdir( os.path.join(recent_dir, potential_timestep) ):
+			continue	# if the timestep isn't a directory, skip it.
+		
+		timesteps.append( int(potential_timestep) )						# add timestep to our list
+	
+	if len(timesteps) == 0:
+		err('No epochs found. Not a valid recent directory.')
+
+	timesteps.sort()									# sort the timesteps, lowest numbers come first.
+	
+	#-----------------------------------------------------------------------------------
+	#--
+	#-- Compute complexities for all timesteps
+	#--
+	#-- (store values to file in timestep dir)
+	#--
+	#-----------------------------------------------------------------------------------
+	DATA={ }
+	
+	print "Final Timestep: %s" % ( max(timesteps) )
+	print datetime.datetime.now()
+	print "Processing:",
+	for t in timesteps:
+		DATA[t] = tdata = {}
+
+		metrics_remaining = metrics
+
+		if len(metrics_remaining) > 0:
+			metrics_computed = compute_metrics(metrics_remaining,
+							   recent_dir,
+							   str(t),
+							   tdata)
+			metrics_remaining = list_difference(metrics_remaining,
+								metrics_computed)
+
+		assert(len(metrics_remaining) == 0)
+
+	#-----------------------------------------------------------------------------------
+	#--
+	#-- Create 'Avr' File
+	#--
+	#-----------------------------------------------------------------------------------
+	AVR = algorithms.avr_table(DATA,
+							   metrics,
+							   timesteps)
+	
+	datalib.write(outputpath, AVR, append=True)
+	
+	
+##	#-----------------------------------------------------------------------------------
+##	#--
+##	#-- Create 'Norm' file
+##	#--
+##	#-----------------------------------------------------------------------------------
+##	tables = compute_bins(DATA,
+##				  timesteps,
+##				  metrics,
+##				  AVR,
+##				  lambda row: row.get('min'),
+##				  lambda row: row.get('max'))
+##	
+##	outputpath = os.path.join(recent_dir, OutputFilename2.replace( '.', 'Norm.'))
+##	
+##	datalib.write(outputpath, tables)
+##	
+##	
+##	#-----------------------------------------------------------------------------------
+##	#--
+##	#-- Create 'Raw' file
+##	#--
+##	#-----------------------------------------------------------------------------------
+##	MAXGLOBAL = dict([(type, float('-inf')) for type in metrics])
+##	MINGLOBAL = dict([(type, float('inf')) for type in metrics])
+##	
+##	for avr_table in AVR.values():
+##		for row in avr_table.rows():
+##			type = avr_table.name
+##	
+##			MAXGLOBAL[type] = max(MAXGLOBAL[type], row.get('max'));
+##			MINGLOBAL[type] = min(MINGLOBAL[type], row.get('min'));
+##	
+##	tables = compute_bins(DATA,
+##				  timesteps,
+##				  metrics,
+##				  AVR,
+##				  lambda row: MINGLOBAL[row.table.name],
+##				  lambda row: MAXGLOBAL[row.table.name])
+##	
+##	outputpath = os.path.join(recent_dir, OutputFilename2.replace( '.', 'Raw.'))
+##	
+##	datalib.write(outputpath, tables)
+##	
+
+
+####################################################################################
+###
+### FUNCTION compute_metrics()
+###
+####################################################################################
+def compute_metrics(metrics,
+					recent_dir,
+					t,
+					tdata):
+	timestep_directory = os.path.join(recent_dir, t)
+	print '%s at %s...' % (timestep_directory, datetime.datetime.now())
+	sys.stdout.flush()	
+	
+	# --- Read in any metrics computed on a previous invocation of this script
+	metrics_read = []
+	if not OverwriteEpochMetrics or (EpochList and (t not in EpochList)):
+		for metric in metrics:
+			path = os.path.join(timestep_directory, 'metric_' + metric + '.plt')
+	
+			if os.path.isfile(path):
+				try:
+					table = datalib.parse(path)[metric]
+					try:
+						data = table.getColumn('Mean').data
+					except KeyError, x:
+						# Maybe it's of an older format
+						data = table.getColumn('Metric').data
+					tdata[metric] = common_metric.normalize_metrics(data)
+	
+					metrics_read.append(metric)
+				except datalib.InvalidFileError, e:
+					# file must have been incomplete
+					print "Failed reading ", path, "(", e, ") ... regenerating"
+		
+	metrics_remaining = list_difference(metrics, metrics_read)
+	
+	print "	 AlreadyHave =", metrics_read
+	print "	 MetricsToGet =", metrics_remaining
+
+	# --- Compute metrics not already found on the file system
+	if metrics_remaining:
+		# --- Execute CalcMetric on all corresponding brainAnatomy files in anatomy dir
+		brainFunction_files = glob.glob(os.path.join(timestep_directory, "brainFunction*.txt"))
+		#Extract critter number from brainFunction files
+		number_list = map(lambda x: int(os.path.basename(x)[14:-4]), brainFunction_files)
+				
+		anatomy_directory = os.path.join(timestep_directory, "..", "..", "anatomy")
+		
+		# The following should be a drastically more efficient means of obtaining the
+		# sorted list of brain anatomy files, compared to the old method below it
+		number_list.sort()
+		brainAnatomy_files = []
+		for id in number_list:
+			brainAnatomy_files.append(os.path.join(anatomy_directory, 'brainAnatomy_' + str(id) + '_death.txt'))
+											   
+#		brainAnatomy_files_all = glob.glob(os.path.join(anatomy_directory, "*death.txt"))
+# 
+#		#Pick out those brainAnatomy files with corresponding critter number to brainFunction files.
+#		brainAnatomy_files = []
+#		for anatomyFile in brainAnatomy_files_all:
+#			if int(os.path.basename(anatomyFile)[13:-10]) in number_list:
+#				brainAnatomy_files.append(anatomyFile)
+# 
+#		brainAnatomy_files.sort(lambda x, y: cmp(int(os.path.basename(x)[13:-10]),
+#							  int(os.path.basename(y)[13:-10])))
+
+		if len(brainAnatomy_files) == 0:
+			err('No brainanatomy files found in %s' % anatomy_directory)
+
+		# Separate out the derived 'swi' metrics from the other metrics
+		metrics_to_compute = []
+		swi_metrics_to_compute = []
+		swi_details = []
+		for metric in metrics_remaining:
+			details = metric.split('_')
+			if details[0] == 'swi' or details[0] == 'swid':
+				swi_metrics_to_compute.append(metric)
+				swi_details.append(details)
+			else:
+				metrics_to_compute.append(metric)
+				
+		if metrics_to_compute:	# computing something other than 'swi' metrics
+			metric_data = calc_metrics(metrics_to_compute, brainAnatomy_files)
+			save_metrics(metrics_to_compute, metric_data, timestep_directory, tdata)
+
+		if swi_metrics_to_compute:
+			swis = []
+			for i in range(len(swi_metrics_to_compute)):
+				details = swi_details[i]
+				length_metric = details[3] + '_' + details[1] + '_' + details[2]  #	 <metric>_<neuron-set>_<graph-type>
+				randomization = '_ran'
+				for detail in details[4:]:
+					randomization += '_' + detail
+				swi = small_world_index(timestep_directory, length_metric, randomization, 'd' in details[0])
+				swis.append(swi)
+			metric_data = []
+			i = 0
+			for anatomy_file in brainAnatomy_files:
+				agent = os.path.basename(anatomy_file)[13:-10]
+				result = {}
+				for j in range(len(swi_metrics_to_compute)):
+					result[swi_metrics_to_compute[j]] = [swis[j][i]]
+				metric_data.append({'agent': agent, 'metrics': result})
+				i += 1
+			save_metrics(swi_metrics_to_compute, metric_data, timestep_directory, tdata)
+
+	return metrics
+
+
+####################################################################################
+###
+### FUNCTION save_metrics()
+###
+####################################################################################
+def save_metrics(metrics, metric_data, timestep_directory, tdata):
+
+# 	print 'metrics =', metrics
+# 	print 'metric_data =', metric_data
+# 	print 'timestep_directory =', timestep_directory
+# 	print 'tdata =', tdata
+
+	colnames = ['AgentNumber', 'SampSize', 'Mean', 'StdDev']
+	coltypes = ['int', 'int', 'float', 'float']
+
+	tables = dict([(type, datalib.Table(type, colnames, coltypes))
+			   for type in metrics])
+
+	for agent_results in metric_data:
+		agent = agent_results['agent']
+		results = agent_results['metrics']
+
+		for type in metrics:
+			result = results[type]
+
+			n = len(result)
+			mean, stddev, stderr = algorithms.sample_mean( result )
+		
+			table = tables[type]
+			row = table.createRow()
+
+			row['AgentNumber'] = agent
+			row['SampSize'] = n
+			row['Mean'] = mean
+			row['StdDev'] = stddev
+
+	# --- Write to file and normalize data (eg sort and remove 0's)
+	for metric in metrics:
+		table = tables[metric]
+		path = os.path.join(timestep_directory, 'metric_' + metric + '.plt')
+		datalib.write(path, table)
+		data = table.getColumn('Mean').data
+		tdata[metric] = common_metric.normalize_metrics(data)
+
+
+####################################################################################
+###
+### FUNCTION debug_metrics()
+###
+####################################################################################
+def debug_metrics(agent = None, metric = None, index = None):
+	DEBUG_METRICS = False
+	if DEBUG_METRICS:
+		newline = True
+		if agent:
+			print agent + ':',
+			newline = False
+		if metric:
+			print metric,
+			newline = False
+		if index != None:
+			print index,
+			newline = False
+		if newline:
+			print
+		else:
+			sys.stdout.flush()
+
+
+####################################################################################
+###
+### FUNCTION calc_metrics()
+###
+####################################################################################
+def calc_metrics(metrics, anatomy_files):
+	metric_data = []
+	
+	for anatomy_file in anatomy_files:
+		agent = os.path.basename(anatomy_file)[13:-10]
+		debug_metrics(agent=agent)
+		result = dict([(metric, []) for metric in metrics])
+		need_any_graphs = list_difference(metrics, common_metric.METRICS_NO_GRAPH)
+
+		if need_any_graphs:
+			__initialize_graphs()
+			header = __read_graphs(anatomy_file)  # adds both 'a' and 'p' graphs, of type 'wd', to G_py
+		
+		for metric in metrics:
+			debug_metrics(metric=metric)
+			details = metric.split('_')
+			root = details[0]
+			if root not in common_metric.METRICS_NO_GRAPH:
+				neuron_set = details[1]
+				graph_type = details[2]
+				if '_ran' in metric:
+					random = True
+					num_samples = int(details[4])
+					preserving = details[5]
+				else:
+					random = False
+					num_samples = 1
+					preserving = ''
+		
+			for index in range(num_samples):			
+				if root == 'hf':
+					start = header.find('fitness=') + 8
+					end = start + header[start:].find(' ')
+					value = float(header[start:end])
+				else:
+					if num_samples > 1:
+						debug_metrics(index=index)
+					value = Metric_Function[root](neuron_set, graph_type, random, preserving, index)
+				
+				result[metric].append(value)
+		
+		debug_metrics()
+		
+		metric_data.append({'agent': agent, 'metrics': result})
+		
+		if need_any_graphs:
+			__free_graphs()
+	
+	return metric_data
+						
+			 
+####################################################################################
+###
+### FUNCTION make_percents()
+###
+####################################################################################
+def make_percents(tables, totals):
+	for table in tables.values():
+		for row in table.rows():
+			t = row.get('Timestep')
+			total = totals[t][table.name]
+
+			for bin in range(NUMBINS):
+				row.mutate(bin, lambda x: 100 * x / total)
+
+
+####################################################################################
+###
+### FUNCTION compute_bins()
+###
+####################################################################################
+def compute_bins(DATA, timesteps, complexities, AVR, minfunc, maxfunc):
+	totals = dict([(t, {}) for t in timesteps])
+	
+	colnames = ['Timestep'] + [x for x in range(NUMBINS)]
+	coltypes = ['int'] + ['int' for x in range(NUMBINS)]
+	tables = {}
+	
+	for type in complexities:
+		table_bins = datalib.Table(type, colnames, coltypes)
+		tables[type] = table_bins
+	
+		table_avr = AVR[type]
+	
+		for row_avr in table_avr.rows():
+			t = row_avr.get('Timestep')
+			minimum = minfunc(row_avr)
+			maximum = maxfunc(row_avr)
+	
+			row_bins = table_bins.createRow()
+			row_bins.set('Timestep', t)
+			for bin in range(NUMBINS): row_bins.set(bin, 0)
+	
+			data = DATA[t][type]
+	
+			totals[t][type] = 0
+	
+			if(maximum > minimum):
+				for complexity in data:
+					bin = int(((complexity - minimum)/(maximum - minimum))*NUMBINS)
+					if bin >= NUMBINS:
+						bin -= 1
+					row_bins.mutate(bin, lambda x: x + 1)
+	
+					totals[t][type] += 1
+	
+	make_percents(tables, totals)
+
+	return tables
+			
+####################################################################################
+###
+### FUNCTION show_usage()
+###
+####################################################################################
+def show_usage(msg = None):
+################################################################################
+	print"""\
+USAGE
+
+  %s [<options>]... <directory>...
+
+DESCRIPTION
+
+     Analyzes various metrics of the epochs contained in one or more recent
+  directories.
+
+     <directory> can specify either a run directory or a parent of one or more
+  run directories.
+
+OPTIONS
+
+     -s
+            Run BCT in "safe" mode, so matrices are checked for binary status
+            (only zeroes and ones) and undirected status (symmetric)
+
+     -o
+            Overwrite/recompute existing metrics in Avr file (if present)
+     
+     -O
+            Overwrite/recompute both the epoch metric files and the metrics
+            in the Avr file (if present)
+     
+     -e <epoch,...>
+            If -O is specified, then using -e followed by a list of epoch
+            numbers will result in only those epochs being overwritten
+            (default is all epochs will be overwritten if -O is specified,
+            otherwise none will be overwritten)
+     
+     -d <dataset>
+            Valid datasets:\
+%s
+
+            Note that datasets may be abbreviated.
+            (default %s)
+
+     -v <v>[,<v>]...
+           Override default metrics, where <v> is one of:
+""" % (sys.argv[0], '\n                '.join(common_functions.RECENT_TYPES), DefaultRecent )
+
+	for root in common_metric.METRIC_ROOT_TYPES:
+		print '              ', common_metric.METRIC_TYPES[root], '-', common_metric.get_name(root)
+
+	print '\n           (default %s)\n' % (', '.join(common_metric.DEFAULT_METRICS))
+
+	if msg:
+		print "--------------------------------------------------------------------------------"
+		print
+		print 'Error!', msg
+	sys.exit(1)
+
+####################################################################################
+###
+### Primary Code Path
+###
+####################################################################################
+
+exit_value = main()
+
+sys.exit(exit_value)

@@ -1,0 +1,509 @@
+#!/usr/bin/env python
+################################################################################
+# CONFIGURABLE PARAMETERS
+################################################################################
+# you can edit these as well, but you probably don't want to
+# DO NOT EDIT ANYTHING BENEATH HERE UNLESS YOU KNOW WHAT YOU'RE DOING
+################################################################################
+# Load our Libraries
+import sys, getopt, os.path, re, os
+# Finished loading libraries
+################################################################################
+# some global variables:
+GNUPLOT_SETTINGS="""
+set termoption noenhanced
+set key outside         # if we have a legend, put it outside the graph
+set key at screen 1,1 right horizontal spacing 1
+set bar 0.0             # if we are going to print errorbars, make the knobs at the end small (0.0 is equivalent to yerrorlines)
+set mxtics 5            # make small little tics along the x-axis
+set xlabel 'Timestep' font 'Times,15'
+set grid
+set datafile missing '?'	# unknown values are '?'
+set style line 99 lc rgb "gray" lw 1		# used when there is not a legend
+set style line 100 lc rgb "black" lw 3	# used for the AVERAGE line
+set style line 101 lc rgb "black" lw 1 pointsize 0.0	# used for the STDERR bars
+"""
+
+flag_plotSmooth=0
+GNUPLOT_SMOOTHING_FUNCTION='csplines' 		# reasonable smoothing options are: csplines, acsplines, bezier, sbezier
+
+GNUPLOT_MULTIPLOTSETTINGS="""
+set key at screen 1,1 right horizontal spacing 1	# even though this is already set in the regular GNUPLOT settings, you have to do it again here -- you just do.
+set bar 0.0             # if we are going to print errorbars, make smaller horizontal knobs on the ends.
+#set mxtics 5            # make small little tics along the x-axis
+set grid noxtics	# turn off the grid on the xtics, it just creates clutter anyway
+###
+set tmargin 1.5		# enlarge plots by allowing them to creep up closer to the title (1.5 seems about right)
+set bmargin 1.5		# enlarge plots by allowing them to recede down closer to the margins (1.5 seems about right)
+#set format y ''
+#set format x ''
+set xtics scale 0.0				# no xtics, they get in the way
+###
+unset xlabel
+unset ylabel
+set border 10
+###
+"""
+COLORED_LINE_WIDTH=1.5
+IDENTICAL_LINE_WIDTH=0.8
+##################
+tempfilename='/tmp/,plotStats_%s.plt' % ( os.getpid() )		# this file will contain the raw data
+gnufilename='/tmp/,plotStats_%s.gnuplot' % ( os.getpid() )	# this file will contain gnuplot commands
+flag_plotPoints = 0
+flag_plotMean = 0
+flag_plotErrorbars = 0
+flag_plotLegend = 0
+flag_multiplot = 0
+###############
+PASSED_DIRECTORY=''
+multiplotDimX = 0
+multiplotDimY = 0
+RUN_DIRS=()
+PARAMS=[]
+PARAMS_withoutcrunch=[]
+GNUPLOT_TOPRIGHT_LABEL=[]
+multiplotmaxtimesteps={} # we only use this if we're multiplotting.  It lets us set the range and xtics for each plot invidually to make them pretty
+################################################################################
+def print_usage_and_exit():
+	print """
+USAGE 
+       plotStats [-lmep] [-MXxY] directory param1[,param2,param3]
+
+DESCRIPTION
+       plotStats plots statistics from one or more Polyworld run/stats/ directories.
+
+OPTIONS
+       -l      A legend is to be drawn and different line types (colors?) are to be used.  Lines will be labeled
+               in the legend using the names of the run directories (after stripping any leading numbers). If not
+               -l, all lines will be printed in the same identical gray color. (default off)
+       
+       -m      The mean of each param will be computed and drawn. (default off)
+               If the worldfile 'statfreq' is different across runs, the mean will be computed for the timesteps
+               in the first directory.  For example, if the first run/ directory had statfreq=100, but another run/
+               directory had a statfreq=50, the mean would only be computed every 100 timesteps.  This is a feature
+               to control the temporal precision of the average line.
+
+       -e      Standard Error bars for the mean will be drawn. (default off)
+
+       -p      Data points will be drawn on the lines.  (default off)
+      
+       -s      Make a smoothed version of the plot using algorithm '%s'.  (default off)
+
+       -MXxY   Multiplot putting each run/ directory on it's own graph.  (default off)
+
+	""" % (GNUPLOT_SMOOTHING_FUNCTION)
+	sys.exit(1)
+####################################
+def GET_GNUPLOT_DYNAMIC_SETTINGS():
+	global flag_plotPoints, flag_plotLegend, flag_multiplot, multiplotDimX, multiplotY
+	global RUN_DIRS, PARAMS, IDENTICAL_LINE_WIDTH, GNUPLOT_TOPRIGHT_LABEL
+
+	settings = [ ]
+	settings.append( "set title '%s'" % (PASSED_DIRECTORY) )	# set the title
+	settings.append( "set ylabel '%s' font 'Times,15'" % (", ".join(PARAMS)) )	# set the ylabel
+
+	if flag_plotLegend:		# if we're plotting the legend, define the linestyles for each line.
+		number_of_colored_lines= len(PARAMS) * len(RUN_DIRS)
+		linestyle=1
+		while linestyle <= number_of_colored_lines:
+			settings.append( "set style line %s linetype %s linewidth %s" % ( linestyle, linestyle, COLORED_LINE_WIDTH )  )
+			linestyle += 1
+		
+	else:	settings.append("unset key")					# if no legend, unset the legend
+
+	if flag_plotPoints:
+		settings.append("set style data linespoints")
+	else:
+		settings.append("set pointsize 0.0")		# set pointsize isn't yet supported by AquaTerm but it probably will someday
+		settings.append("set style data lines")
+
+	# make the TopRight Label
+        settings.append( 'set label "%s" at screen 0.001,0.98 left' % ('\\n'.join(GNUPLOT_TOPRIGHT_LABEL)) )
+
+	if flag_multiplot:
+		settings.append( "set multiplot layout %s, %s title '%s'" % ( multiplotDimY, multiplotDimX, PASSED_DIRECTORY ) ) 
+		settings.append( GNUPLOT_MULTIPLOTSETTINGS )	# put in the multiplot settings on top of the regular settings
+	else:
+		global MAXTIMESTEP
+		settings.append("set xrange [0:%s]" % (MAXTIMESTEP) )
+
+	return '\n'.join(settings)
+#####################################
+# This function specifies the stuff to include at the end of the very end of the plot.
+def GET_GNUPLOT_END_SETTINGS():
+	global flag_multiplot
+	z = []
+		
+	if flag_multiplot: z.append( "unset multiplot" )
+	z.append( "raise" )			# this causes the most recent plot come to the front of the desktop.
+
+	return '\n'.join(z)
+#####################################
+def GET_GNUPLOT_PLOTSTRING():
+	global RUN_DIRS, PARAMS, tempfilename, flag_plotLegend, flag_plotMean, flag_plotErrorbars, flag_plotSmooth
+
+	num_rundir_lines= len(PARAMS) * len(RUN_DIRS)
+	if flag_plotLegend: linestyles = range(1, num_rundir_lines + 1)		# linestyles will be a list of integers indicating the line colors we're going to plot
+	else: linestyles = ('99 ' * num_rundir_lines).rstrip(' ').split(' ')	# remove the trailing space, then split the string.  List will have all '99's
+
+
+	plotstring = [ ]
+	plotstringsmooth=[ ]
+	column = 2					# we begin at column 2 because column 1 is the timesteps
+
+	for param in PARAMS:
+		for RUN_DIR in RUN_DIRS:
+			# to space space, for the legend titles we only use the part of RUN_DIR *after* the last '/' 
+			plotstring.append ("'%s' using 1:%s linestyle %s title '%s'" % (tempfilename, column, linestyles[0], param + '__' + (RUN_DIR.split('/'))[-1] ) )
+			linestyles.pop(0)		# removes the first item in the list
+			column += 1			# increment the column
+
+	if flag_plotMean:
+		for param in PARAMS:
+			plotstring.append ("'%s' using 1:%s linestyle 100 title '%s'" % (tempfilename, column, param + '__AVERAGE') )
+
+			if not flag_plotErrorbars:		# if Errorbars are NOT on, goto the next column is an AVERAGE
+				column += 1
+			else:					# if Errorbars are turned on, plot them and the next AVERAGE is TWO columns down.
+				plotstring.append ("'%s' using 1:%s:%s linestyle 101 w yerrorbars notitle" % (tempfilename, column, column + 1) )
+				column += 2
+
+	# Okay, we've made our regular plotstring, now to make the smoothed plotstring.  We always make the string, even if we don't always plot it.
+	global GNUPLOT_SMOOTHING_FUNCTION
+	for line in plotstring:
+		if 'yerrorbars' in line:		# the yerrorbars style doesnt support smoothing
+			plotstringsmooth.append( line )
+		else:
+			plotstringsmooth.append( line + ' smooth %s' % ( GNUPLOT_SMOOTHING_FUNCTION ))
+
+	# Okay, we've made our regular plostring, but now we're going to completely transform it if we're multiplotting...
+	if flag_multiplot:
+		global multiplotmaxtimesteps
+		mplotstrings=[]
+		mplotstringssmooth=[]
+		for i in range(0, len(RUN_DIRS)):
+			# set the title for each miniplot
+			miniplottitle=(RUN_DIRS[i].split('/')[-1]).replace('_','_')
+			mplotstrings.append( 'set title "%s" offset 0,-1' % (miniplottitle) )			
+			mplotstringssmooth.append( 'set title "%s" offset 0,-1' % (miniplottitle) )
+
+			# set the xrange and xtics for each miniplot
+			mplotstrings.append( 'set xrange[0:%s]' % (multiplotmaxtimesteps[RUN_DIRS[i]]) )	
+			mplotstrings.append( 'set xtics 0, %s' % (multiplotmaxtimesteps[RUN_DIRS[i]]) )
+			mplotstringssmooth.append( 'set xrange[0:%s]' % (multiplotmaxtimesteps[RUN_DIRS[i]]) )
+			mplotstringssmooth.append( 'set xtics 0, %s' % (multiplotmaxtimesteps[RUN_DIRS[i]]) )
+
+			# make the plotstrings
+			mplotstrings.append( 'plot ' + ', '.join( plotstring[i:num_rundir_lines:len(RUN_DIRS)] ) )
+			mplotstringssmooth.append( 'plot ' + ', '.join( plotstringsmooth[i:num_rundir_lines:len(RUN_DIRS)] ) )
+			
+			# fix the linestyles within the plotstring we just made
+			if flag_plotLegend:	# if plot Legend is not on we don't care about the linecolors
+				regularlinestyles=re.findall("linestyle [0-9]*", mplotstrings[-1])
+				currentstyle=1
+				for regularlinestyle in regularlinestyles:
+					mplotstrings[-1] = mplotstrings[-1].replace( regularlinestyle, 'linestyle %s' % (currentstyle) )
+					mplotstringssmooth[-1] = mplotstringssmooth[-1].replace( regularlinestyle, 'linestyle %s' % (currentstyle) )
+					currentstyle += 1
+		
+		# and join it all into one lovely string separated by newlines
+		plotstring = '\n'.join( mplotstrings )
+		plotstringsmooth= '\n'.join( mplotstringssmooth )
+
+		# now do a string replace for each PARAM to make the Legends not have the run/ directory in them.
+		for param in PARAMS:
+			plotstring = re.sub("title '%s[^']*'" % (param), "title '%s'" % (param), plotstring )
+			plotstringsmooth = re.sub("title '%s[^']*'" % (param), "title '%s'" % (param), plotstringsmooth )
+
+	else:			# if multiplot is NOT turned on, just join the strings.
+		plotstring='plot ' + ', '.join( plotstring )			 # begin with 'plot' and join each line to be plotted with a coma.
+		plotstringsmooth='plot ' + ', '.join( plotstringsmooth)		 # begin with 'plot' and join each line to be plotted with a coma.
+
+
+	return plotstring, plotstringsmooth
+######################################
+def sample_stderr( list ):
+	N = len(list)
+	mean = sum(list) / N
+
+	SSE=0
+	for item in list:
+		SSE += (item - mean)**2.0
+
+	try:
+		variance = SSE / (N-1)
+	except:
+		variance = 0
+	stderr = ( variance ** 0.5 ) / (N**0.5)	# stderr = stddev / sqrt(N)
+	return stderr
+
+def check_parameters( argv ):
+	try:
+		opts, args = getopt.getopt( argv, "selmpM:")
+	except getopt.GetoptError: 
+		print_usage_and_exit() 
+
+#	print "opts=%s" % ( opts )
+#	print "args=%s" % ( args)
+
+	global flag_plotLegend, flag_plotErrorbars, flag_multiplot, flag_plotMean, flag_plotPoints, PASSED_DIRECTORY, multiplotDimX, multiplotDimY	# grant access to the global variables we're going to modify
+	global flag_plotSmooth
+	# Set our plot flags
+	for opt in opts:
+
+		if '-l' in opt:
+			flag_plotLegend = 1
+		elif '-s' in opt:
+			flag_plotSmooth=1
+		elif '-e' in opt:
+			flag_plotErrorbars = 1
+		elif '-m' in opt:
+			flag_plotMean = 1
+		elif '-p' in opt:
+			flag_plotPoints = 1
+		elif '-M' in opt:
+			flag_multiplot = 1
+			multiplotDimX, multiplotDimY = map(int, (opt[1]).split('x'))
+		else:
+			print "* Error: Do not know argument '%s'" % (opt)
+			print_usage_and_exit()
+
+	if flag_plotErrorbars and not flag_plotMean:		# if the user specified incompatible parameters, say so and exit.
+		print "* Error: Errorbars make no sense without the mean also being plotted.  Turn off errorbars or turn on the mean."
+		sys.exit(1)
+
+	# If we don't have 2 arguments, exit.
+	if len(args) != 2:
+		print_usage_and_exit()
+	
+	directory = args[0].rstrip( '/' )	# removing any trailing slash
+	PASSED_DIRECTORY=directory
+#	print "directory = '%s'" % ( directory )
+
+### Now to create our PARAMS and PARAMS_withoutcrunch list
+	global PARAMS, PARAMS_withoutcrunch
+
+	params = args[1].split( ',' )				# split up the params by comas
+	try:				# use index to remove any empty items in the list
+		while params.index(''):
+			params.remove('')
+	except:
+		pass			# and we're done!
+
+#	print "[2] params = %s " % ( params )
+
+	for i in range(len(params)):		# now add the crunch to the params list (if there are none)
+		if not re.search("#[0-9]+$", params[i] ):	# if we DO NOT find a #<number> at the end of the string.
+			params[i] += "#1"
+
+		withoutcrunch = re.sub( "#[0-9]+$", "", params[i] );
+		PARAMS_withoutcrunch.append( withoutcrunch )
+
+	PARAMS = params
+#	print "[3] PARAMS = %s " % ( PARAMS )
+#	print "[3] PARAMS_withoutcrunch = %s " % ( PARAMS_withoutcrunch )
+#### Finished with our PARAMS and PARAMS_withoutcrunch list
+
+	global RUN_DIRS
+
+	if not os.path.isdir( directory ):			# if the passed directory wasn't a directory, exit.
+		print "* Error: '%s' isn't a directory." % ( directory )
+		print_usage_and_exit()
+
+	if os.path.isfile( directory + '/stats/stat.1' ): 	# if 'directory' is itself a run/ directory, just use that.
+		RUN_DIRS += ( directory, )
+	else:						# 'directory' is a directory, but is NOT a run/ directory itself.  Is it a list of run directories?
+		for potential_rundir in os.listdir( directory ):
+			# if potential_directory is a run/ directory, add it.
+			if os.path.isfile( directory + '/' + potential_rundir + '/stats/stat.1' ):	RUN_DIRS += ( directory + '/' + potential_rundir, )
+
+	if flag_multiplot and len(RUN_DIRS) > multiplotDimX * multiplotDimY:		# if multiplot is turned on only go up to dimX*dimY
+		print "* Warning: There are %s run/ directories in %s, but multiplot can only plot %s plots -- only using the first %s." % ( len(RUN_DIRS), PASSED_DIRECTORY, multiplotDimX * multiplotDimY, multiplotDimX * multiplotDimY )
+		RUN_DIRS = RUN_DIRS[:multiplotDimX * multiplotDimY]
+
+#	print "RUN_DIRS= %s" % ( RUN_DIRS, )
+########################### make sure that the values in PARAMS specify a line in the stats files, and only specify a single line.
+	# pick the stat.1 file form the first run directory.
+	filename = RUN_DIRS[0] + "/stats/stat.1"
+
+	# read the lines from the file, and 
+	stat1 = open( filename )
+	lines = "\n" + "".join(stat1.readlines())	# lines is a big string containing the entire file stat.1 file.  The prepend of "\n" is a UGLY HACK to allow us to plot the first line in the file.
+	stat1.close()				# All we need is lines, we're done with stat1
+
+	for param in PARAMS_withoutcrunch:	# foreach param: see how many lines match it
+		numcatches = len( re.findall( "\n[ ]*" + param + "[ \t]", lines ) )
+
+		if numcatches != 1:		# if there is not a single match, exit.
+			print "* Error: Each parameter must specify exactly one line.  The parameter '%s' specified '%s' lines." % ( param, numcatches ) 
+			sys.exit(1)
+#########################################
+#This function gets the lowest stat frequency as specified in the worldfile from a list of run/ directories.
+#########################################
+def get_minstatfreq(run_dirs):
+	minstatfreq=0
+
+	for run_dir in run_dirs:
+		if not os.path.isfile( run_dir + '/worldfile' ):
+			continue
+		
+		worldfile = open( run_dir + '/worldfile' )
+		for line in worldfile:
+			if 'statfreq' in line:
+				statfreq = int( re.match('([0-9]*)', line).groups(0)[0] )
+				if statfreq < minstatfreq or not minstatfreq: minstatfreq = statfreq
+				break
+		worldfile.close()
+
+	if not minstatfreq:
+		print "* Error: none of the run/ directories contained a worldfile with statfreq defined.  Exiting."
+		sys.exit(1)
+		
+	return minstatfreq
+########################################################################################################################		
+########################################################################################################################		
+#######################################################################################################################		
+### Real program begins here
+
+check_parameters( sys.argv[1:] );		# don't send it the first item in the sys.argv list because that's this programs filename
+MINSTATFREQ = get_minstatfreq( RUN_DIRS )	# this will be used at the end when making the .plt file
+GNUPLOT_TOPRIGHT_LABEL.append( "Generated `date +%Y-%m-%d` by `whoami`")
+
+MAXTIMESTEP = 0					# this will be used at the end when making the .plt file
+
+# Print some data for the user.
+print """- plotPoints=%s plotMean=%s plotErrorbars=%s plotLegend=%s""" % ( flag_plotPoints, flag_plotMean, flag_plotErrorbars, flag_plotLegend )
+print "- RUN_DIRS= %s" % ( RUN_DIRS, )
+print "- params=%s" % (PARAMS)
+
+DATA = { }
+sed_out= "[^0-9 \.\-]"
+for param in PARAMS:
+	param_withoutcrunch = param.rstrip('0123456789').rstrip('#')	# take off the numbers, then take off the '#'
+
+	column = int( param.replace( param_withoutcrunch + "#", '' ) )
+	if re.search( '[0-9 \.\-]', param_withoutcrunch):		# CAREFUL.  This regex MUST be the exact inverse of variable 'sed_out'
+		column = column + 1		# hack to get the correct column if our parameter has a number in it.
+
+	print param + ': ',
+
+	for RUN_DIR in RUN_DIRS:
+		DATAkey = param + '~~' + RUN_DIR
+		DATA[ DATAkey ] = { }					# create a dictionary of dictionaries
+
+		print "%s..." % ( RUN_DIR ),
+		sys.stdout.flush()
+
+		files = os.listdir( RUN_DIR + '/stats/' )
+		timesteps = [ ]
+		for statfile in files:					# go through each file in run/stats/ to make sure it is a stat.#### file
+			if re.match( 'stat\.[0-9]', statfile ):	# statfile matches the format of: stat.#### ...
+				timesteps.append( int(statfile.lstrip('stat\.')) )
+
+		timesteps.sort()
+
+		if RUN_DIR not in multiplotmaxtimesteps:				# this is for the xrange dynamic setting for multiplots
+			multiplotmaxtimesteps[RUN_DIR]=timesteps[-1]
+
+		if timesteps[-1] > MAXTIMESTEP: MAXTIMESTEP = timesteps[-1]		# this is for later, as well as the xrange[] dynamic setting
+
+#		print "timesteps='%s'" % ( timesteps )
+		for timestep in timesteps:
+			cmd = "grep '^[ ]*%s[ 	]' %s/stats/stat.%s | sed -e 's/%s//g'| tr -s ' '" % ( param_withoutcrunch, RUN_DIR, timestep, sed_out )	# create our grep command
+			# join into a string; remove tabs, newlines, and spaces from the beginning and end; then split by spaces back into a list.
+			result = "".join( os.popen(cmd).readlines() ).strip("\n 	").split(' ')
+
+			if column > len(result):
+				print "* Error: You specified column '%s', but there are only %s columns for parameter '%s'.  Exiting." % ( column, len(result), param_withoutcrunch)
+				sys.exit(1)
+			value = result[column-1]			# lists are zero based.  So decrement column by 1.
+
+#			print "cmd=%s result=%s column=%s value=%s" % ( cmd, result, column, value )
+			DATA[ DATAkey ][ timestep ] = value
+	print ""	# print a newline
+
+	if flag_plotMean:							# if we're plotting the mean compute that now.
+		DATA[ param + '~~AVERAGE'] = {}					# make a new dictionary for the average
+		if flag_plotErrorbars: DATA[ param + '~~AVERAGE_STDERR'] = {}	# make dictionary for the StdErr bars on the mean, (if we're doing that)
+
+		meantimesteps= map( int, DATA[ param + '~~' + RUN_DIRS[0] ].keys() )	# get the timesteps from the first directory; convert to ints; assign to 'timesteps'
+		meantimesteps.sort()
+#debug		print "meantimesteps=%s" % ( meantimesteps )
+
+
+		for t in meantimesteps:						# foreach timestep in the first RUN_DIR...
+			samples=[ ]						
+			for RUN_DIR in RUN_DIRS:
+				DATAkey = param + '~~' + RUN_DIR		# for convenience so we dont have to keep specifying it manually
+
+				if t in DATA[ DATAkey ]:			# if the RUN_DIR has a value for the timestep we're interested in (in all non-pathological cases this will be true 100% of the time)...
+					samples.append( float(DATA[ DATAkey ][t]) )	
+				else:
+					print "* Warning: run/ directory '%s' does not have timestep %s -- not including it in any averages for timestep %s." % ( RUN_DIR, t, t )
+
+			DATA[ param + '~~AVERAGE' ][t] = sum(samples ) / len(samples)				# store the average into the DATA meta-dictionary
+			if flag_plotErrorbars: DATA[ param + '~~AVERAGE_STDERR'  ][t] =  sample_stderr( samples ) 	# store the stderr into DATA meta-dictionary
+
+#			print "DATA[%s~~AVERAGE][%s]=%s" % ( param, t, DATA[param + '~~AVERAGE'][t] )
+##########################################################################################################################################
+# Okay, we've made out DATA dictionary with all params/runs, param averages, and param stderrs.
+# Now Lets Plot!
+##########################################################################################################################################
+
+# First, build the definitive list of all timesteps we could have in our DATA meta-dictionary
+timesteps=[ 1 ]
+timesteps.extend( range(MINSTATFREQ, MAXTIMESTEP+MINSTATFREQ, MINSTATFREQ) )
+o = open( tempfilename , 'w' )			# open a tempfile at /tmp/,<pid>.plt
+
+# print the header for the tempfile
+# Format for the tempfile is:  timestep param1run1 param1run2 param1run3 param2run1 param2run3 param2run3 param1AVR param1STDERR param2AVR param2STDERR
+# In words: param1 comes, then param2 comes, then param1 AVR/STDERR and param2 AVR/STDERR
+tempcol=2
+for param in PARAMS:
+	for RUN_DIR in RUN_DIRS:
+		o.write( "# col %s: param='%s' dir=%s\n" % ( tempcol, param, RUN_DIR ) )
+		tempcol += 1
+if flag_plotMean:
+	for param in PARAMS:
+		o.write( "# col %s: param='%s' AVERAGE\n" % ( tempcol, param ) )
+		tempcol += 1
+		if flag_plotErrorbars:
+			o.write( "# col %s: param='%s' STDERR\n" % ( tempcol, param ) )
+			tempcol += 1
+
+########################## finished printing the header for the tempfile.  Now lets print the actual data!
+for t in timesteps:
+	line_to_write = [ '%s\t' % ( t ) ]				# each line begins with the timestep
+	for param in PARAMS:	
+		for RUN_DIR in RUN_DIRS:
+			DATAkey="%s~~%s" % ( param, RUN_DIR )		# so we don't have to keep making this
+			if t not in DATA[ DATAkey ]:			# if there is no value for timestep t...put a question mark there
+				line_to_write.append( '?\t' )
+			else:
+				line_to_write.append( '%s\t' % ( DATA[ DATAkey ][t] ) )
+
+	if flag_plotMean:						# put the averages after all of the RUN_DIR values, if we're doing that.
+		for param in PARAMS:
+			line_to_write.append( '%s\t' % (DATA[ param + '~~AVERAGE' ][t]) )
+			if flag_plotErrorbars: line_to_write.append( '%s\t' % (DATA[ param + '~~AVERAGE_STDERR' ][t]) )
+				
+	line_to_write[-1] = line_to_write[-1].rstrip("\t")			# strip the final tab from the line.		
+	o.write( "".join(line_to_write) + "\n" )
+
+o.close()
+print "Finished writing to '%s'." % ( tempfilename )
+
+# Plot the unsmoothed
+gnufile = open( gnufilename, 'w' ) 
+gnufile.write( "%s\n%s\n%s\n%s\n" % ( GNUPLOT_SETTINGS, GET_GNUPLOT_DYNAMIC_SETTINGS(), GET_GNUPLOT_PLOTSTRING()[0], GET_GNUPLOT_END_SETTINGS() ) )
+gnufile.close()
+os.system( 'gnuplot -persist '+ gnufilename )
+
+if flag_plotSmooth:		# Second, plot the smoothed in a new window (if we're doing that)
+	GNUPLOT_TOPRIGHT_LABEL.append( "Smoothed with '%s'" % (GNUPLOT_SMOOTHING_FUNCTION) )
+	gnufileS = open( gnufilename + 'S', 'w' )
+	gnufileS.write( "%s\n%s\n%s\n%s\n" % ( GNUPLOT_SETTINGS, GET_GNUPLOT_DYNAMIC_SETTINGS(), GET_GNUPLOT_PLOTSTRING()[1], GET_GNUPLOT_END_SETTINGS() ) )
+	gnufileS.close()
+	os.system( 'gnuplot '+ gnufilename + 'S' )
+
+print "Done!"

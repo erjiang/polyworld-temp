@@ -1,0 +1,467 @@
+# This document gives the before and after naming conventions
+# for worldfile parameters, across the major worldfile overhaul
+# in late 54		version
+
+LockStepWithBirthsDeathsLog				PassiveLockstep
+
+maxSteps								MaxSteps
+endOnPopulationCrash					EndOnPopulationCrash
+docpuwork								(eliminated)
+dumpfreq								CheckpointFrequency
+statfreq								StatusFrequency
+edges									Edges [Blocked, Wraparound, Tabletop]
+wraparound								(eliminated)
+vision									(eliminated)
+showvision								(eliminated)
+staticTimestepGeometry					StaticTimestepGeometry
+minwin									RetinaWidth
+maxvel									RetinaHeight
+
+minnumagents							MinAgents
+maxnumagents							MaxAgents
+initnumagents							InitAgents
+numberToSeed							SeedAgents
+probabilityOfMutatingSeed				SeedMutationProbability
+
+seedFromFile							SeedGenomeFromRun
+positionSeedsFromFile					SeedPositionFromRun
+
+miscagents								MiscegenationDelay
+
+initFoodCount							InitFood
+minFoodCount							MinFood
+maxFoodCount							MaxFood
+maxFoodGrown							MaxFoodGrown
+foodrate								FoodGrowthRate
+
+foodRemoveEnergy						FoodRemoveEnergy
+
+positionSeed							(eliminated)
+genomeSeed								InitSeed
+simulationSeed							SimulationSeed
+
+agentsRfood								AgentsAreFood
+fit1freq								EliteFrequency
+fit2freq								PairFrequency
+numFit									NumberFittest
+numRecentFit							NumberRecentFittest
+
+eatfitparam								FitnessWeightEating
+matefitparam							FitnessWeightMating
+movefitparam_0.5						FitnessWeightMoving
+energyfitparam							FitnessWeightEnergyAtDeath
+agefitparam_10.0						FitnessWeightLongevity
+
+minfoodenergy							MinFoodEnergy
+maxfoodenergy							MaxFoodEnergy
+size2energy								FoodEnergySizeScale
+eat2consume								FoodConsumptionRate
+
+N		genomeLayout_L=Legacy|N=NeurGroup
+
+enableMateWaitFeedback
+enableSpeedFeedback
+enableGive
+enableCarry
+
+maxCarries_3
+carryAgents
+carryFood
+carryBricks
+
+shieldAgents
+shieldFood
+shieldBricks
+
+carryPreventsEat
+carryPreventsFight
+carryPreventsGive
+carryPreventsMate
+
+minintneurons_unused
+maxintneurons_unused
+minvispixels
+maxvispixels
+minmrate
+maxmrate_0.1
+minnumcpts
+maxnumcpts
+minlifespan
+maxlifespan
+matewait
+initmatewait
+eatMateSpan
+minstrength
+maxstrength
+minsize
+maxsize
+minmaxenergy
+maxmaxenergy
+minmateenergy
+maxmatenergy
+minmatefrac_0.05
+minmaxspeed
+maxmaxspeed
+speed2dpos_1.0
+yaw2dyaw_80.0_20.0
+minlrate
+maxlrate
+minfocus
+maxfocus
+agentfovy
+maxsizeadvantage
+I		bodyGreenChannel_I=ID_Gene|L=Light_Neuron|<float_literal>=fixed
+L		noseColor_L=Light_Neuron|<float_literal>=fixed
+
+power2energy
+eat2energy
+mate2energy
+fight2energy
+minsizepenalty
+maxsizepenalty
+speed2energy
+yaw2energy
+light2energy
+focus2energy
+pickup2energy
+drop2energy
+carryAgent2energy
+carryAgentSize2energy
+carryFood2energy
+carryBrick2energy
+maxsynapse2energy
+fixedenergydrain
+decayrate
+agenthealingrate
+
+eatThreshold
+mateThreshold
+fightThreshold
+fightFraction_1.0
+giveThreshold
+giveFraction
+pickupThreshold
+dropThreshold
+
+miscbias
+miscinvslope
+
+logisticslope
+maxweight
+enableInitWeightRngSeed
+minInitWeightRngSeed
+maxInitWeightRngSeed
+initmaxweight_0.5_0.1_1.0
+minbitprob_0.1_0.5
+maxbitprob_0.6_0.5
+
+solidAgents_0
+solidFood_0
+solidBricks_1
+
+agentheight
+foodheight
+0.6 0.2	foodcolor
+brickheight
+0.2 0.2	brickcolor
+barrierheight
+0.25 0.15	barriercolor
+0.15 0.05	groundcolor
+groundclearance
+0.3 0.3	cameracolor
+camradius
+camheight
+camrotationrate_0.09
+camanglestart
+camfov
+monAgent
+monwidth_not_used
+monheight_not_used
+monstride
+worldsize
+numbarriers
+ratioBarrierPositions
+barrier[0].numKeyFrames
+33.33 -100. 33.33 -10.	barrier[0].keyFrame[0]_t_x1_z1_x2_z2
+barrier[1].numKeyFrames
+66.67 -100. 66.67 -10.	barrier[1].keyFrame[0]_t_x1_z1_x2_z2
+
+genesepmon
+geneseprec
+chartborn
+chartfit
+chartfoodenergy
+chartpop
+
+numdomains
+
+domain[0].centerX	
+domain[0].centerZ	
+domain[0].sizeX
+domain[0].sizeZ
+domain[0].minAgentsFraction
+domain[0].maxAgentsFraction
+domain[0].initAgentsFraction
+domain[0].numberToSeedFraction
+domain[0].probabilityOfMutatingSeeds
+domain[0].initFoodFraction
+domain[0].minFoodFraction
+domain[0].maxFoodFraction
+domain[0].maxFoodGrownFraction
+domain[0].foodRate
+domain[0].numFoodPatches
+domain[0].numBrickPatches
+
+domain[0].foodPatch[0].fraction
+domain[0].foodPatch[0].initFoodFraction
+domain[0].foodPatch[0].minFoodFraction
+domain[0].foodPatch[0].maxFoodFraction
+domain[0].foodPatch[0].maxFoodGrownFraction
+domain[0].foodPatch[0].growthRate
+domain[0].foodPatch[0].centerX
+domain[0].foodPatch[0].centerZ
+domain[0].foodPatch[0].sizeX
+domain[0].foodPatch[0].sizeZ
+domain[0].foodPatch[0].areaShape_0=rectangular|1=elliptical
+domain[0].foodPatch[0].distribution_0=uniform|1=linear|2=gaussian
+domain[0].foodPatch[0].neighborhoodSize
+domain[0].foodPatch[0].period
+domain[0].foodPatch[0].onFraction
+domain[0].foodPatch[0].phase
+domain[0].foodPatch[0].removeFood
+
+domain[0].foodPatch[1].fraction
+domain[0].foodPatch[1].initFoodFraction
+domain[0].foodPatch[1].minFoodFraction
+domain[0].foodPatch[1].maxFoodFraction
+domain[0].foodPatch[1].maxFoodGrownFraction
+domain[0].foodPatch[1].growthRate
+domain[0].foodPatch[1].centerX
+domain[0].foodPatch[1].centerZ
+domain[0].foodPatch[1].sizeX
+domain[0].foodPatch[1].sizeZ
+domain[0].foodPatch[1].areaShape_0=rectangular|1=elliptical
+domain[0].foodPatch[1].distribution_0=uniform|1=linear|2=gaussian
+domain[0].foodPatch[1].neighborhoodSize
+domain[0].foodPatch[1].period
+domain[0].foodPatch[1].onFraction
+domain[0].foodPatch[1].phase
+domain[0].foodPatch[1].removeFood
+
+domain[0].brickPatch[0].centerX
+domain[0].brickPatch[0].centerZ
+domain[0].brickPatch[0].sizeX
+domain[0].brickPatch[0].sizeZ
+domain[0].brickPatch[0].count
+domain[0].brickPatch[0].areaShape_0=rectangular|1=elliptical
+domain[0].brickPatch[0].distribution_0=uniform|1=linear|2=gaussian
+domain[0].brickPatch[0].neighborhoodSize
+
+domain[1].centerX	
+domain[1].centerZ	
+domain[1].sizeX
+domain[1].sizeZ
+domain[1].minAgentsFraction
+domain[1].maxAgentsFraction
+domain[1].initAgentsFraction
+domain[1].numberToSeedFraction
+domain[1].probabilityOfMutatingSeeds
+domain[1].initFoodFraction
+domain[1].minFoodFraction
+domain[1].maxFoodFraction
+domain[1].maxFoodGrownFraction
+domain[1].foodRate
+domain[1].numFoodPatches
+domain[1].numBrickPatches
+
+domain[1].foodPatch[0].fraction
+domain[1].foodPatch[0].initFoodFraction
+domain[1].foodPatch[0].minFoodFraction
+domain[1].foodPatch[0].maxFoodFraction
+domain[1].foodPatch[0].maxFoodGrownFraction
+domain[1].foodPatch[0].growthRate
+domain[1].foodPatch[0].centerX
+domain[1].foodPatch[0].centerZ
+domain[1].foodPatch[0].sizeX
+domain[1].foodPatch[0].sizeZ
+domain[1].foodPatch[0].areaShape_0=rectangular|1=elliptical
+domain[1].foodPatch[0].distribution_0=uniform|1=linear|2=gaussian
+domain[1].foodPatch[0].neighborhoodSize
+domain[1].foodPatch[0].period
+domain[1].foodPatch[0].onFraction
+domain[1].foodPatch[0].phase
+domain[1].foodPatch[0].removeFood
+
+domain[1].foodPatch[1].fraction
+domain[1].foodPatch[1].initFoodFraction
+domain[1].foodPatch[1].minFoodFraction
+domain[1].foodPatch[1].maxFoodFraction
+domain[1].foodPatch[1].maxFoodGrownFraction
+domain[1].foodPatch[1].growthRate
+domain[1].foodPatch[1].centerX
+domain[1].foodPatch[1].centerZ
+domain[1].foodPatch[1].sizeX
+domain[1].foodPatch[1].sizeZ
+domain[1].foodPatch[1].areaShape_0=rectangular|1=elliptical
+domain[1].foodPatch[1].distribution_0=uniform|1=linear|2=gaussian
+domain[1].foodPatch[1].neighborhoodSize
+domain[1].foodPatch[1].period
+domain[1].foodPatch[1].onFraction
+domain[1].foodPatch[1].phase
+domain[1].foodPatch[1].removeFood
+
+domain[1].brickPatch[0].centerX
+domain[1].brickPatch[0].centerZ
+domain[1].brickPatch[0].sizeX
+domain[1].brickPatch[0].sizeZ
+domain[1].brickPatch[0].count
+domain[1].brickPatch[0].areaShape_0=rectangular|1=elliptical
+domain[1].brickPatch[0].distribution_0=uniform|1=linear|2=gaussian
+domain[1].brickPatch[0].neighborhoodSize
+
+domain[2].centerX	
+domain[2].centerZ	
+domain[2].sizeX
+domain[2].sizeZ
+domain[2].minAgentsFraction
+domain[2].maxAgentsFraction
+domain[2].initAgentsFraction
+domain[2].numberToSeedFraction
+domain[2].probabilityOfMutatingSeeds
+domain[2].minFoodFraction
+domain[2].maxFoodFraction
+domain[2].maxFoodGrownFraction
+domain[2].initFoodFraction
+domain[2].foodRate
+domain[2].numFoodPatches
+domain[2].numBrickPatches
+
+domain[2].foodPatch[0].fraction
+domain[2].foodPatch[0].initFoodFraction
+domain[2].foodPatch[0].minFoodFraction
+domain[2].foodPatch[0].maxFoodFraction
+domain[2].foodPatch[0].maxFoodGrownFraction
+domain[2].foodPatch[0].growthRate
+domain[2].foodPatch[0].centerX
+domain[2].foodPatch[0].centerZ
+domain[2].foodPatch[0].sizeX
+domain[2].foodPatch[0].sizeZ
+domain[2].foodPatch[0].areaShape_0=rectangular|1=elliptical
+domain[2].foodPatch[0].distribution_0=uniform|1=linear|2=gaussian
+domain[2].foodPatch[0].neighborhoodSize
+domain[2].foodPatch[0].period
+domain[2].foodPatch[0].onFraction
+domain[2].foodPatch[0].phase
+domain[2].foodPatch[0].removeFood
+
+domain[2].foodPatch[1].fraction
+domain[2].foodPatch[1].initFoodFraction
+domain[2].foodPatch[1].minFoodFraction
+domain[2].foodPatch[1].maxFoodFraction
+domain[2].foodPatch[1].maxFoodGrownFraction
+domain[2].foodPatch[1].growthRate
+domain[2].foodPatch[1].centerX
+domain[2].foodPatch[1].centerZ
+domain[2].foodPatch[1].sizeX
+domain[2].foodPatch[1].sizeZ
+domain[2].foodPatch[1].areaShape_0=rectangular|1=elliptical
+domain[2].foodPatch[1].distribution_0=uniform|1=linear|2=gaussian
+domain[2].foodPatch[1].neighborhoodSize
+domain[2].foodPatch[1].period
+domain[2].foodPatch[1].onFraction
+domain[2].foodPatch[1].phase
+domain[2].foodPatch[1].removeFood
+
+domain[2].brickPatch[0].centerX
+domain[2].brickPatch[0].centerZ
+domain[2].brickPatch[0].sizeX
+domain[2].brickPatch[0].sizeZ
+domain[2].brickPatch[0].count
+domain[2].brickPatch[0].areaShape_0=rectangular|1=elliptical
+domain[2].brickPatch[0].distribution_0=uniform|1=linear|2=gaussian
+domain[2].brickPatch[0].neighborhoodSize
+
+useProbabilisticFoodPatches
+
+binchartgs
+
+F		neuronModel_F=FiringRate|S=Spiking|T=Tau
+
+tauMin
+tauMax
+tauSeed
+
+mininternalneurgroups
+maxinternalneurgroups
+mineneurpergroup
+maxeneurpergroup
+minineurpergroup
+maxineurpergroup
+minbias_-1.0_unused
+maxbias_1.0
+minbiaslrate
+maxbiaslrate_0.2
+minconnectiondensity
+maxconnectiondensity
+mintopologicaldistortion
+maxtopologicaldistortion
+enableTopologicalDistortionRngSeed
+minTopologicalDistortionRngSeed
+maxTopologicalDistortionRngSeed
+maxneur2energy
+numprebirthcycles
+
+seedFightBias_0.5
+seedFightExcitation_1.0
+seedGiveBias_0.0
+seedPickupBias_0.0
+seedDropBias_0.0
+seedPickupExcitation_0.0
+seedDropExcitation_0.0
+
+overheadrank
+tracking
+minfoodenergyatdeath
+
+graycoding
+
+O		smiteMode_R=random|L=leastfit|O=off
+smiteFrac
+smiteAgeFrac_affectsAverageFitness
+NumDepletionSteps_150
+applyLowPopulationAdvantage_1
+
+
+recordBirthsDeaths
+recordPosition
+recordContacts
+recordCollisions
+recordCarry
+
+brainAnatomyRecordAll
+brainFunctionRecordAll
+brainAnatomyRecordSeeds
+brainFunctionRecordSeeds
+bestSoFarBrainAnatonomyRecordFrequency
+bestSoFarBrainFunctionRecordFrequency
+bestRecentBrainAnatonomyRecordFrequency
+bestRecentBrainFunctionRecordFrequency
+recordGeneStats
+recordPerformanceStats
+recordFoodPatchStats
+recordComplexity
+P		complexityType_P=processing|A=all|I=input|B=behavior|D=processing-input|Z=ZeroMaxVelocityHack
+complexityFitnessWeight_0.0
+heuristicFitnessWeight_0.0
+recordGenomes
+recordSeparations
+recordAdamiComplexity
+AdamiComplexityRecordFrequency
+
+compressFiles
+
+O		FogFunction_O=Off|L=Linear|E=Exponential
+ExponentialFogDensity
+LinearFogEnd
+
+recordMovie

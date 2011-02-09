@@ -1,0 +1,191 @@
+#!/usr/bin/env python
+
+import abstractfile
+import datalib
+import getopt
+import os
+import sys
+
+from common_functions import err
+import common_logs
+import wfutil
+
+####################################################################################
+###
+### FUNCTION main()
+###
+####################################################################################
+def main():
+    mode = 'simend'
+    generatePositions = False
+    editWorldfile = False
+
+    # polyworld home dir
+    homedir = os.path.realpath( os.path.join(os.path.dirname( sys.argv[0] ), '..') )
+
+    #
+    # Process Args
+    #
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], 'a:et:pw', ['agent=', 'simend', 'time=', 'pos', 'worldfile'] )
+    except getopt.GetoptError, x:
+        show_usage( x )
+
+
+    for opt, arg in opts:
+        if opt == '--agent' or opt == '-a':
+            mode = 'agent'
+            try:
+                agentNumber = int(arg)
+            except:
+                show_usage( 'Invalid agentNumber (%s)' % arg )
+        elif opt == '--simend' or opt == '-e':
+            mode = 'simend'
+        elif opt == '--time' or opt == '-t':
+            mode = 'time'
+            try:
+                time = int(arg)
+            except:
+                show_usage( 'Invalid timestep (%s)' % arg )
+        elif opt == '--pos' or opt == '-p':
+            generatePositions = True
+        elif opt == '--worldfile' or opt == '-w':
+            editWorldfile = True
+        else:
+            assert( False )
+
+    if len(args) != 1:
+        show_usage( 'Expecting one run dir as argument' )
+
+    rundir = os.path.realpath( args[0] )
+    if rundir == os.path.realpath( os.path.join(homedir, 'run') ):
+        err( 'Cannot use seeds in run/ -- conflicts with simulator. Please rename run/.' )
+
+
+    #
+    # Determine agent numbers
+    #
+    if mode == 'agent':
+        agentNumbers = [agentNumber]
+    elif mode == 'simend':
+        lifespans = common_logs.LifeSpans( rundir )
+        agentNumbers = list( lifespans.getAllWithDeathReason('SIMEND') )
+    elif mode == 'time':
+        lifespans = common_logs.LifeSpans( rundir )
+        agentNumbers = list( lifespans.getAllAliveAtTime(time) )
+    else:
+        assert( False )
+
+    #
+    # Determine genome file paths
+    #
+    genome_relpath='genome/agents/'
+    if not os.path.exists( os.path.join(rundir, genome_relpath) ):
+        genome_relpath='genome/'
+
+    paths = [os.path.join( rundir, genome_relpath + '/genome_' + str(agentNumber) + '.txt' )
+             for agentNumber in agentNumbers]
+
+    for path in paths:
+        if not abstractfile.exists( path ):
+            err( 'Cannot find %s' % path )
+
+    # make paths relative to polyworld home dir, regardless of working directory
+    paths = map( lambda x: os.path.relpath(x, homedir), paths )
+
+    #
+    # Generate the file
+    #
+    out = open( os.path.join(homedir, 'genomeSeeds.txt'), 'w' )
+
+    for path in paths:
+        out.write( path )
+        out.write( '\n' )
+
+    out.close()
+
+    #
+    # Generate positions file if requested
+    #
+    if generatePositions:
+        out = open( os.path.join(homedir, 'seedPositions.txt'), 'w' )
+
+        worldsize = float( wfutil.get_parameter(rundir,
+                                                'WorldSize') )
+        def __ratio( val ):
+            return "r%s" % (val / worldsize)
+
+        for agentNumber in agentNumbers:
+            path = os.path.join( rundir, 'motion/position/agents/position_' + str(agentNumber) + '.txt' )
+            positionTable = datalib.parse( path, keycolname = 'Timestep' )['Positions']
+            if mode == 'time':
+                row = positionTable[time]
+            else:
+                row = positionTable.rows()[-1]
+
+            out.write( '%s %s %s\n' % (__ratio(row['x']), row['y'], __ratio(row['z'])) )
+
+        out.close()
+
+    #
+    # Edit worldfile if requested
+    #
+    if editWorldfile:
+        worldfile = wfutil.path_default_worldfile()
+
+        if not os.path.exists( worldfile ):
+            err( 'Cannot locate ' + worldfile )
+
+        edits = [
+            "InitAgents=%d" % len(agentNumbers),
+            "SeedAgents=%d" % len(agentNumbers),
+            "SeedGenomeFromRun=True",
+            "SeedPositionFromRun=%s" % generatePositions
+        ]
+
+        wfutil.edit( worldfile, edits )
+        
+
+####################################################################################
+###
+### FUNCTION show_usage()
+###
+####################################################################################
+def show_usage( msg = None ):
+################################################################################
+    print """\
+usage: genomeSeed [option] rundir
+
+     Produces a genomeSeeds.txt file appropriate for use with Polyworld
+  executable. Note the file will be created in the parent directory of that
+  which contains this script, regardless of the working directory from which
+  this script is invoked. Also, the paths in the generated file will be
+  relative to that same 'Polyworld home' directory.
+
+  --agent, -a <agentNumber>
+
+             Generate seed for single agent.
+
+  --simend, -e
+
+             Generate seeds for agents alive at end of sim.
+
+  --time, -t <step>
+
+             Generate seeds for agents alive at timestep.
+
+  --pos, p
+
+             Generate positions file.
+
+  --worldfile, w
+
+             Edit <Polyworld Home>/worldfile to use seeds.
+"""
+
+    if msg != None:
+        err(msg)
+
+    sys.exit(1)
+
+main()

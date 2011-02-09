@@ -1,0 +1,31 @@
+/PolyworldPrefix.pch/1.1.1.1/Sat Dec 25 20:03:08 2004//
+D/English.lproj////
+D/Polyworld.xcodeproj////
+D/app////
+D/docs////
+D/environment////
+D/extracode////
+D/graphics////
+D/tools////
+D/ui////
+D/utils////
+/ReleaseNotes.txt/1.3/Mon Aug 27 23:28:28 2007//
+/TODO.txt/1.25/Sun Jul  5 01:19:55 2009//
+/version.plist/1.1.1.1/Fri Jul 24 19:51:42 2009//
+D/agent////
+D/complexity////
+D/objects////
+D/worldfiles////
+D/scripts////
+/Info.plist/1.3/Mon Aug 10 18:39:25 2009//
+/README.txt/1.32/Mon Aug 10 07:53:35 2009//
+D/etc////
+D/brain////
+D/genome////
+/LICENSE.txt/1.1.1.1/Wed Aug  4 04:00:03 2010//
+/update_bct/1.2/Wed Aug  4 04:57:55 2010//
+/.cvsignore/1.4/Thu Sep  2 01:36:37 2010//
+D/debugger////
+/Makefile/1.7/Tue Dec 28 10:18:05 2010//
+/default.wfs/1.1/Wed Jan  5 04:17:06 2011//
+/nominal.wf/1.1/Wed Jan  5 04:55:24 2011//
