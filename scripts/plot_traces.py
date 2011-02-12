@@ -9,16 +9,14 @@ import common_metric
 
 GROUPS = ['driven', 'passive', 'both']
 
-DEFAULT_DIRECTORY = '/pwd/dynamic_food/run_df8_F30_complexity_0_partial'
-#DEFAULT_DIRECTORY = '/pwd/b2_driven_vs_passive/'
-DEFAULT_GROUP = GROUPS[0]
-#DEFAULT_X_DATA_TYPE = 'swi_p_wd_npl_10_wp'
-DEFAULT_X_DATA_TYPE = 'cc_p_wd'
-DEFAULT_Y_DATA_TYPE = 'P'
+DEFAULT_DIRECTORY = '/pwd/driven_vs_passive_b2'
+DEFAULT_GROUP = GROUPS[2]
+DEFAULT_X_DATA_TYPE = 'P'
+DEFAULT_Y_DATA_TYPE = 'HB'
 
 COLOR = {'driven':(0.5,1.0,0.5), 'passive':(0.5,0.5,1.0)}
 
-use_hf_coloration = False
+use_hf_coloration = True
 
 end_points = []
 
@@ -116,12 +114,8 @@ def retrieve_data(run_dir, x_data_type, y_data_type):
 	y_filename = get_filename(y_data_type)
 	y_path = os.path.join(recent_dir, y_filename)
 	if not (os.path.exists(x_path) and os.path.exists(y_path)):
-		print 'Warning: Some .plt files are missing:'
-		if not os.path.exists(x_path):
-			print ' ', x_path
-		if not os.path.exists(y_path):
-			print ' ', y_path
-		return None, None, None
+		print 'Error! Needed Avr files are missing'
+		exit(2)
 		
 	x_table = datalib.parse(x_path)[x_data_type]
 	y_table = datalib.parse(y_path)[y_data_type]
@@ -210,8 +204,7 @@ def plot(ax, x, y, time, sim_type):
 def plot_dirs(ax, run_dirs, x_data_type, y_data_type, sim_type):
 	for run_dir in run_dirs:
 		x, y, time = retrieve_data(run_dir, x_data_type, y_data_type)
-		if x:
-			plot(ax, x, y, time, sim_type)
+		plot(ax, x, y, time, sim_type)
 
 
 def plot_finish(ax, bounds):

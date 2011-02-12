@@ -48,15 +48,11 @@
 		7629AB8F11FBA367004002AE /* SeparationCache.cp in Sources */ = {isa = PBXBuildFile; fileRef = 7629AB8A11FBA367004002AE /* SeparationCache.cp */; };
 		7629AB9011FBA367004002AE /* SpeedSensor.cp in Sources */ = {isa = PBXBuildFile; fileRef = 7629AB8C11FBA367004002AE /* SpeedSensor.cp */; };
 		762A43921061C79C0079A7F0 /* RandomNumberGenerator.cp in Sources */ = {isa = PBXBuildFile; fileRef = 762A43901061C79C0079A7F0 /* RandomNumberGenerator.cp */; };
-		7663018A12CC59C900F94886 /* AbstractFile.cp in Sources */ = {isa = PBXBuildFile; fileRef = 7663018512CC59C900F94886 /* AbstractFile.cp */; };
-		7663018B12CC59C900F94886 /* proplib.cp in Sources */ = {isa = PBXBuildFile; fileRef = 7663018712CC59C900F94886 /* proplib.cp */; };
 		7668D1690885AC65004158C6 /* PwMovieUtils.cp in Sources */ = {isa = PBXBuildFile; fileRef = 7668D1680885AC65004158C6 /* PwMovieUtils.cp */; };
 		7668D2F208864A7E004158C6 /* PwMovieUtils.cp in Sources */ = {isa = PBXBuildFile; fileRef = 7668D1680885AC65004158C6 /* PwMovieUtils.cp */; };
 		7668D30008864B8A004158C6 /* PwMoviePlayer.cp in Sources */ = {isa = PBXBuildFile; fileRef = 7668D2FF08864B8A004158C6 /* PwMoviePlayer.cp */; };
 		7668D30E088650F0004158C6 /* MainWindow.cp in Sources */ = {isa = PBXBuildFile; fileRef = 7668D30D088650F0004158C6 /* MainWindow.cp */; };
 		767A61770A4A21AC00A88B62 /* brick.cp in Sources */ = {isa = PBXBuildFile; fileRef = 76D32E1609E62FDC00394ACE /* brick.cp */; };
-		767A9CC612C9EF43008E2546 /* DebuggerWindow.cp in Sources */ = {isa = PBXBuildFile; fileRef = 767A9CC412C9EF43008E2546 /* DebuggerWindow.cp */; };
-		767A9D0112C9EFE0008E2546 /* Mutex.cp in Sources */ = {isa = PBXBuildFile; fileRef = 767A9D0012C9EFE0008E2546 /* Mutex.cp */; };
 		768BD94810E016EC00B3DCAA /* EnergySensor.cp in Sources */ = {isa = PBXBuildFile; fileRef = 768BD94210E016EC00B3DCAA /* EnergySensor.cp */; };
 		768BD94910E016EC00B3DCAA /* RandomSensor.cp in Sources */ = {isa = PBXBuildFile; fileRef = 768BD94410E016EC00B3DCAA /* RandomSensor.cp */; };
 		768BD94A10E016EC00B3DCAA /* Retina.cp in Sources */ = {isa = PBXBuildFile; fileRef = 768BD94610E016EC00B3DCAA /* Retina.cp */; };
@@ -191,20 +187,11 @@
 		7629AB8D11FBA367004002AE /* SpeedSensor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SpeedSensor.h; sourceTree = "<group>"; };
 		762A43901061C79C0079A7F0 /* RandomNumberGenerator.cp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RandomNumberGenerator.cp; sourceTree = "<group>"; };
 		762A43911061C79C0079A7F0 /* RandomNumberGenerator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RandomNumberGenerator.h; sourceTree = "<group>"; };
-		7663018512CC59C900F94886 /* AbstractFile.cp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AbstractFile.cp; sourceTree = "<group>"; };
-		7663018612CC59C900F94886 /* AbstractFile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AbstractFile.h; sourceTree = "<group>"; };
-		7663018712CC59C900F94886 /* proplib.cp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = proplib.cp; sourceTree = "<group>"; };
-		7663018812CC59C900F94886 /* proplib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = proplib.h; sourceTree = "<group>"; };
-		7663018912CC59C900F94886 /* Queue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Queue.h; sourceTree = "<group>"; };
 		7668D1680885AC65004158C6 /* PwMovieUtils.cp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = PwMovieUtils.cp; sourceTree = "<group>"; };
 		7668D16A0885AD07004158C6 /* PwMovieUtils.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = PwMovieUtils.h; sourceTree = "<group>"; };
 		7668D2E308864A66004158C6 /* PwMoviePlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PwMoviePlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7668D2FF08864B8A004158C6 /* PwMoviePlayer.cp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = PwMoviePlayer.cp; sourceTree = "<group>"; };
 		7668D30D088650F0004158C6 /* MainWindow.cp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = MainWindow.cp; sourceTree = "<group>"; };
-		767A9CC412C9EF43008E2546 /* DebuggerWindow.cp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = DebuggerWindow.cp; path = debugger/DebuggerWindow.cp; sourceTree = "<group>"; };
-		767A9CC512C9EF43008E2546 /* DebuggerWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DebuggerWindow.h; path = debugger/DebuggerWindow.h; sourceTree = "<group>"; };
-		767A9D0012C9EFE0008E2546 /* Mutex.cp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Mutex.cp; sourceTree = "<group>"; };
-		767A9D3E12C9F06C008E2546 /* Mutex.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Mutex.h; sourceTree = "<group>"; };
 		768BD94210E016EC00B3DCAA /* EnergySensor.cp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = EnergySensor.cp; sourceTree = "<group>"; };
 		768BD94310E016EC00B3DCAA /* EnergySensor.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = EnergySensor.h; sourceTree = "<group>"; };
 		768BD94410E016EC00B3DCAA /* RandomSensor.cp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = RandomSensor.cp; sourceTree = "<group>"; };
@@ -381,7 +368,6 @@
 				76CBA55C062BED8E001C79E7 /* app */,
 				768BD94D10E0172B00B3DCAA /* brain */,
 				760C2CB2101AC94700F5F662 /* complexity */,
-				767A9CC912C9EF4B008E2546 /* debugger */,
 				76CBA57A062BEDBC001C79E7 /* environment */,
 				768BD97710E0178A00B3DCAA /* genome */,
 				76CBA580062BEDBC001C79E7 /* graphics */,
@@ -501,15 +487,6 @@
 				76D02CE30894D30200D89155 /* moc_GLWidget.cpp */,
 			);
 			path = PwMoviePlayer;
-			sourceTree = "<group>";
-		};
-		767A9CC912C9EF4B008E2546 /* debugger */ = {
-			isa = PBXGroup;
-			children = (
-				767A9CC412C9EF43008E2546 /* DebuggerWindow.cp */,
-				767A9CC512C9EF43008E2546 /* DebuggerWindow.h */,
-			);
-			name = debugger;
 			sourceTree = "<group>";
 		};
 		768BD94D10E0172B00B3DCAA /* brain */ = {
@@ -666,8 +643,6 @@
 		76CBA5A3062BEDBC001C79E7 /* utils */ = {
 			isa = PBXGroup;
 			children = (
-				7663018512CC59C900F94886 /* AbstractFile.cp */,
-				7663018612CC59C900F94886 /* AbstractFile.h */,
 				76E969D010F6A22400D0C730 /* datalib.cp */,
 				76E969D110F6A22400D0C730 /* datalib.h */,
 				7624C7EE0A4A204A006A2B7C /* distributions.cp */,
@@ -680,16 +655,11 @@
 				76CBA5A7062BEDBC001C79E7 /* indexlist.h */,
 				76CBA5A8062BEDBC001C79E7 /* misc.cp */,
 				76CBA5A9062BEDBC001C79E7 /* misc.h */,
-				767A9D0012C9EFE0008E2546 /* Mutex.cp */,
-				767A9D3E12C9F06C008E2546 /* Mutex.h */,
 				76CBA5AA062BEDBC001C79E7 /* objectlist.h */,
 				76D32E0D09E62F9200394ACE /* objectxsortedlist.cp */,
 				76D32E0E09E62F9200394ACE /* objectxsortedlist.h */,
-				7663018712CC59C900F94886 /* proplib.cp */,
-				7663018812CC59C900F94886 /* proplib.h */,
 				7668D1680885AC65004158C6 /* PwMovieUtils.cp */,
 				7668D16A0885AD07004158C6 /* PwMovieUtils.h */,
-				7663018912CC59C900F94886 /* Queue.h */,
 				762A43901061C79C0079A7F0 /* RandomNumberGenerator.cp */,
 				762A43911061C79C0079A7F0 /* RandomNumberGenerator.h */,
 				76E9D47F101D1C0B007D602E /* Resources.cp */,
@@ -773,14 +743,7 @@
 			};
 			buildConfigurationList = 76293F1D0981AF4600D27C6E /* Build configuration list for PBXProject "Polyworld" */;
 			compatibilityVersion = "Xcode 2.4";
-			developmentRegion = English;
 			hasScannedForEncodings = 1;
-			knownRegions = (
-				English,
-				Japanese,
-				French,
-				German,
-			);
 			mainGroup = 20286C29FDCF999611CA2CEA /* Polyworld */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -989,10 +952,6 @@
 				7629AB9011FBA367004002AE /* SpeedSensor.cp in Sources */,
 				7612461411FFF1DF00638900 /* BeingCarriedSensor.cp in Sources */,
 				7612461511FFF1DF00638900 /* CarryingSensor.cp in Sources */,
-				767A9CC612C9EF43008E2546 /* DebuggerWindow.cp in Sources */,
-				767A9D0112C9EFE0008E2546 /* Mutex.cp in Sources */,
-				7663018A12CC59C900F94886 /* AbstractFile.cp in Sources */,
-				7663018B12CC59C900F94886 /* proplib.cp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

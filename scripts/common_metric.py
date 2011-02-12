@@ -247,7 +247,7 @@ def read_anatomy(anatomy_file):
 			if j == i:
 				w = float(l[j])
 				if w != 0.0:
-					#print 'self-connection in', anatomy_file, 'i = j =', i, 'w =', w
+					print 'self-connection in', anatomy_file, 'i = j =', i, 'w =', w
 					w = 0.0
 			else:
 				w = abs(float(l[j]))
