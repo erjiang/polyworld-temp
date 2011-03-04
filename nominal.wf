@@ -1,5 +1,5 @@
 PassiveLockstep           False
-MaxSteps                  30000
+MaxSteps                  1000
 EndOnPopulationCrash      False
 CheckPointFrequency       1000
 StatusFrequency           100
@@ -409,7 +409,8 @@ Domains [
 ]                         
 ProbabilisticFoodPatches  True
 ChartGeneSeparation       False
-NeuronModel               F
+NeuronModel               S
+EnableSpikingGenes        False
 TauMin                    0.01
 TauMax                    1.0
 TauSeed                   1.0

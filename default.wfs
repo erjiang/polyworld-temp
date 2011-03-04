@@ -1749,6 +1749,11 @@ NeuronModel {
   ]
 }
 
+EnableSpikingGenes {
+  type BOOL
+  default False
+}
+
 TauMin {
   type    FLOAT
   default 0.01
