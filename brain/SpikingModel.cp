@@ -21,6 +21,13 @@ SpikingModel::SpikingModel( NervousSystem *cns )
 	this->rng = cns->getRNG();
 
 	outputActivation = NULL;
+	
+	if(brain::gNeuralValues.enableSpikingGenes == false) {
+		params.SpikingParameter_a = 0.02;
+		params.SpikingParameter_b = 0.2;
+		params.SpikingParameter_c = -65;
+		params.SpikingParameter_d = 6;
+	}
 }
 
 SpikingModel::~SpikingModel()
@@ -289,8 +296,8 @@ void SpikingModel::update( bool bprint )
 			//then reset the membrane potential and recovery variable. 	
 			if (v>=30.)
 			{										  
-				neuron[i].v =  (double) SpikingParameter_c;	  //reset the membrane potential
-				neuron[i].u += (double) SpikingParameter_d;	  //reset the recovery variable
+				neuron[i].v =  params.SpikingParameter_c;	  //reset the membrane potential
+				neuron[i].u += params.SpikingParameter_d;	  //reset the recovery variable
 				v = neuron[i].v;			
 			}	
 				
@@ -309,7 +316,7 @@ void SpikingModel::update( bool bprint )
 			neuron[i].v = v + (.5 * ((0.04 * v * v) + (5 * v) + 140-neuron[i].u + newneuronactivation[i]));
 //change later all v should be neuron[i].v otherwise it is the same assignment as above....dummy!
 //			neuron[i].v = v + (.5 * ((0.04 * v * v) + (5 * v) + 140-neuron[i].u + newneuronactivation[i]));
-			neuron[i].u += SpikingParameter_a * (SpikingParameter_b * v - neuron[i].u);
+			neuron[i].u += params.SpikingParameter_a * (params.SpikingParameter_b * v - neuron[i].u);
 					
 			//##############################################################################################################
 			//If the membrane potetial is high enough that means an action potential will be generated.  Here we have a 

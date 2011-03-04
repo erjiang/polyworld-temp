@@ -11,10 +11,6 @@
 #define BrainStepsPerWorldStep  50
 #define MaxFiringRatePerSecond  260.0
 #define MinFiringRatePerSecond  0.0
-#define SpikingParameter_a      0.02
-#define SpikingParameter_b      0.2
-#define SpikingParameter_c      -65
-#define SpikingParameter_d      6
 
 // note: activation levels are not maintained in the neuronstruct
 // so that after the new activation levels are computed, the old
@@ -38,6 +34,14 @@ struct SpikingModel__Synapse
 	short fromneuron; // > 0 for excitatory, < 0 for inhibitory
 	short toneuron;   // > 0 for excitatory, < 0 for inhibitory
 	float delta;  //!from iz intead of effecting weights directly
+};
+
+struct SpikingModelParams
+{
+	double SpikingParameter_a;
+	double SpikingParameter_b;
+	int SpikingParameter_c;
+	int SpikingParameter_d;
 };
 
 // forward decls
@@ -72,4 +76,6 @@ class SpikingModel : public BaseNeuronModel<SpikingModel__Neuron, SpikingModel__
 	float scale_latest_spikes;
 
 	float *outputActivation;
+	
+	SpikingModelParams params;
 };

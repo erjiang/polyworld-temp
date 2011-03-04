@@ -69,6 +69,9 @@ namespace brain
 		long maxsynapses;
 		short numinputneurgroups;
 		short numoutneurgroups;
+
+		bool enableSpikingGenes;
+
 		struct
 		{
 			float minVal;
