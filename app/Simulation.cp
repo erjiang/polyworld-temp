@@ -6729,6 +6729,15 @@ void TSimulation::ProcessWorldFile( proplib::Document *docWorldFile )
 
     brain::gNeuralValues.enableSpikingGenes = doc.get( "EnableSpikingGenes" );
 
+	brain::gNeuralValues.Spiking.aMinVal = doc.get( "SpikingAMin" );
+	brain::gNeuralValues.Spiking.aMaxVal = doc.get( "SpikingAMax" );
+	brain::gNeuralValues.Spiking.bMinVal = doc.get( "SpikingBMin" );
+	brain::gNeuralValues.Spiking.bMaxVal = doc.get( "SpikingBMax" );
+	brain::gNeuralValues.Spiking.cMinVal = doc.get( "SpikingCMin" );
+	brain::gNeuralValues.Spiking.cMaxVal = doc.get( "SpikingCMax" );
+	brain::gNeuralValues.Spiking.dMinVal = doc.get( "SpikingDMin" );
+	brain::gNeuralValues.Spiking.dMaxVal = doc.get( "SpikingDMax" );
+
 	brain::gNeuralValues.Tau.minVal = doc.get( "TauMin" );
 	brain::gNeuralValues.Tau.maxVal = doc.get( "TauMax" );
 	brain::gNeuralValues.Tau.seedVal = doc.get( "TauSeed" );

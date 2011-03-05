@@ -1754,6 +1754,46 @@ EnableSpikingGenes {
   default False
 }
 
+SpikingAMin {
+  type    FLOAT
+  default 0.02
+}
+
+SpikingAMax {
+  type    FLOAT
+  default 0.02
+}
+
+SpikingBMin {
+  type    FLOAT
+  default 0.2
+}
+
+SpikingBMax {
+  type    FLOAT
+  default 0.2
+}
+
+SpikingCMin {
+  type    INT
+  default -65
+}
+
+SpikingCMax {
+  type    INT
+  default -65
+}
+
+SpikingDMin {
+  type    INT
+  default 6
+}
+
+SpikingDMax {
+  type    INT
+  default 6
+}
+
 TauMin {
   type    FLOAT
   default 0.01

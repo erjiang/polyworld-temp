@@ -78,6 +78,17 @@ namespace brain
 			float maxVal;
 			float seedVal;
 		} Tau;
+		struct
+		{
+			double aMinVal;
+			double aMaxVal;
+			double bMinVal;
+			double bMaxVal;
+			int cMinVal;
+			int cMaxVal;
+			int dMinVal;
+			int dMaxVal;
+		} Spiking;
 		short mininternalneurgroups;
 		short maxinternalneurgroups;
 		short mineneurpergroup;

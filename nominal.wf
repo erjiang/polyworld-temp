@@ -411,6 +411,14 @@ ProbabilisticFoodPatches  True
 ChartGeneSeparation       False
 NeuronModel               S
 EnableSpikingGenes        False
+SpikingAMin               0.02
+SpikingAMax               0.02
+SpikingBMin               0.2
+SpikingBMax               0.2
+SpikingCMin               -65
+SpikingCMax               -65
+SpikingDMin               6
+SpikingDMax               6
 TauMin                    0.01
 TauMax                    1.0
 TauSeed                   1.0

@@ -28,6 +28,13 @@ SpikingModel::SpikingModel( NervousSystem *cns )
 		params.SpikingParameter_c = -65;
 		params.SpikingParameter_d = 6;
 	}
+	
+	else {
+		params.SpikingParameter_a = genes->get("SpikingParameterA");
+		params.SpikingParameter_b = genes->get("SpikingParameterB");
+		params.SpikingParameter_c = genes->get("SpikingParameterC");
+		params.SpikingParameter_d = genes->get("SpikingParameterD");
+	}
 }
 
 SpikingModel::~SpikingModel()
