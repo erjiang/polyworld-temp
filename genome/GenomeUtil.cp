@@ -176,6 +176,13 @@ GenomeSchema *GenomeUtil::createSchema()
 	if( brain::gNeuralValues.model == brain::NeuralValues::SPIKING )
 	{
 		SCALAR( ScaleLatestSpikes );
+		if( brain::gNeuralValues.enableSpikingGenes == true )
+		{
+			SCALAR( SpikingParameterA );
+			SCALAR( SpikingParameterB );
+			SCALAR( SpikingParameterC );
+			SCALAR( SpikingParameterD );
+		}
 	}
 
 	INPUT1( Random );
