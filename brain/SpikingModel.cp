@@ -21,20 +21,6 @@ SpikingModel::SpikingModel( NervousSystem *cns )
 	this->rng = cns->getRNG();
 
 	outputActivation = NULL;
-	
-	if(brain::gNeuralValues.enableSpikingGenes == false) {
-		params.SpikingParameter_a = 0.02;
-		params.SpikingParameter_b = 0.2;
-		params.SpikingParameter_c = -65;
-		params.SpikingParameter_d = 6;
-	}
-	
-	else {
-		params.SpikingParameter_a = genes->get("SpikingParameterA");
-		params.SpikingParameter_b = genes->get("SpikingParameterB");
-		params.SpikingParameter_c = genes->get("SpikingParameterC");
-		params.SpikingParameter_d = genes->get("SpikingParameterD");
-	}
 }
 
 SpikingModel::~SpikingModel()
@@ -68,8 +54,21 @@ void SpikingModel::init_derived( float initial_activation )
 	}
 
 	scale_latest_spikes = genes->get( "ScaleLatestSpikes" );
+	
+	if(brain::gNeuralValues.enableSpikingGenes == false) {
+		params.SpikingParameter_a = 0.02;
+		params.SpikingParameter_b = 0.2;
+		params.SpikingParameter_c = -65;
+		params.SpikingParameter_d = 6;
+	}
+	
+	else {
+		params.SpikingParameter_a = genes->get("SpikingParameterA");
+		params.SpikingParameter_b = genes->get("SpikingParameterB");
+		params.SpikingParameter_c = genes->get("SpikingParameterC");
+		params.SpikingParameter_d = genes->get("SpikingParameterD");
+    }
 }
-
 void SpikingModel::set_neuron( int index,
 							   int group,
 							   float bias,
