@@ -236,6 +236,18 @@ GenomeSchema *GenomeUtil::createSchema()
 		GROUP_ATTR( Tau, NONINPUT );
 	}
 
+	if( brain::gNeuralValues.model == brain::NeuralValues::SPIKING )
+	{
+		GROUP_ATTR( ScaleLatestSpikes, NONINPUT );
+		if( brain::gNeuralValues.enableSpikingGenes == true )
+		{
+			GROUP_ATTR( SpikingParameterA );
+			GROUP_ATTR( SpikingParameterB );
+			GROUP_ATTR( SpikingParameterC );
+			GROUP_ATTR( SpikingParameterD );
+		}
+	}
+
 	SYNAPSE_ATTR( ConnectionDensity, false, false );
 	SYNAPSE_ATTR( LearningRate, true, true );
 	SYNAPSE_ATTR( TopologicalDistortion, false, false );
