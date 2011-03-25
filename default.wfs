@@ -1756,42 +1756,42 @@ EnableSpikingGenes {
 
 SpikingAMin {
   type    FLOAT
-  default 0.02
+  default 0.001
 }
 
 SpikingAMax {
   type    FLOAT
-  default 0.02
+  default 0.2
 }
 
 SpikingBMin {
   type    FLOAT
-  default 0.2
+  default 0.01
 }
 
 SpikingBMax {
   type    FLOAT
-  default 0.2
+  default 0.3
 }
 
 SpikingCMin {
-  type    INT
-  default -65
+  type    FLOAT
+  default -80
 }
 
 SpikingCMax {
-  type    INT
-  default -65
+  type    FLOAT
+  default -30
 }
 
 SpikingDMin {
-  type    INT
-  default 6
+  type    FLOAT
+  default 0.1
 }
 
 SpikingDMax {
-  type    INT
-  default 6
+  type    FLOAT
+  default 10
 }
 
 TauMin {

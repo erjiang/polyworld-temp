@@ -84,10 +84,10 @@ namespace brain
 			double aMaxVal;
 			double bMinVal;
 			double bMaxVal;
-			int cMinVal;
-			int cMaxVal;
-			int dMinVal;
-			int dMaxVal;
+			double cMinVal;
+			double cMaxVal;
+			double dMinVal;
+			double dMaxVal;
 		} Spiking;
 		short mininternalneurgroups;
 		short maxinternalneurgroups;
