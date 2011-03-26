@@ -1,0 +1,8 @@
+*~
+*.swp
+/Polyworld
+.cvsignore
+/.bld
+/bin
+/src
+*.rej
