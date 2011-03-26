@@ -176,13 +176,6 @@ GenomeSchema *GenomeUtil::createSchema()
 	if( brain::gNeuralValues.model == brain::NeuralValues::SPIKING )
 	{
 		SCALAR( ScaleLatestSpikes );
-		if( brain::gNeuralValues.enableSpikingGenes == true )
-		{
-			SCALAR( SpikingParameterA );
-			SCALAR( SpikingParameterB );
-			SCALAR( SpikingParameterC );
-			SCALAR( SpikingParameterD );
-		}
 	}
 
 	INPUT1( Random );
@@ -235,6 +228,15 @@ GenomeSchema *GenomeUtil::createSchema()
 	{
 		GROUP_ATTR( Tau, NONINPUT );
 	}
+
+    if( brain::gNeuralValues.model == brain::NeuralValues::SPIKING &&
+        brain::gNeuralValues.enableSpikingGenes == true )
+    {
+        GROUP_ATTR( SpikingParameterA, NONINPUT );
+        GROUP_ATTR( SpikingParameterB, NONINPUT );
+        GROUP_ATTR( SpikingParameterC, NONINPUT );
+        GROUP_ATTR( SpikingParameterD, NONINPUT );
+    }
 
 	SYNAPSE_ATTR( ConnectionDensity, false, false );
 	SYNAPSE_ATTR( LearningRate, true, true );

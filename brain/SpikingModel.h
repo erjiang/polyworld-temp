@@ -26,6 +26,10 @@ struct SpikingModel__Neuron
 	float u;			  //!<the membranes recovery period			
 	float STDP;           //!<spike-timing-dependent plasticity,
 	short maxfiringcount; //explain later if works
+	double SpikingParameter_a;
+	double SpikingParameter_b;
+	double SpikingParameter_c;
+	double SpikingParameter_d;
 };
 
 struct SpikingModel__Synapse
@@ -34,14 +38,6 @@ struct SpikingModel__Synapse
 	short fromneuron; // > 0 for excitatory, < 0 for inhibitory
 	short toneuron;   // > 0 for excitatory, < 0 for inhibitory
 	float delta;  //!from iz intead of effecting weights directly
-};
-
-struct SpikingModelParams
-{
-	double SpikingParameter_a;
-	double SpikingParameter_b;
-	int SpikingParameter_c;
-	int SpikingParameter_d;
 };
 
 // forward decls
@@ -76,6 +72,9 @@ class SpikingModel : public BaseNeuronModel<SpikingModel__Neuron, SpikingModel__
 	float scale_latest_spikes;
 
 	float *outputActivation;
-	
-	SpikingModelParams params;
+
+    genome::Gene *spikingGeneA;
+    genome::Gene *spikingGeneB;
+    genome::Gene *spikingGeneC;
+    genome::Gene *spikingGeneD;
 };
