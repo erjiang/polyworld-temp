@@ -16,7 +16,9 @@
 // Local
 #include "agent.h"
 #include "barrier.h"
+#include "condprop.h"
 #include "datalib.h"
+#include "EatStatistics.h"
 #include "food.h"
 #include "Scheduler.h"
 #include "SeparationCache.h"
@@ -95,7 +97,7 @@ struct FitStruct
 	ulong	agentID;
 	float	fitness;
 	float   complexity;
-	genome::Genome*	genes;
+	genome::Genome*genes;
 };
 typedef struct FitStruct FitStruct;
 
@@ -260,6 +262,7 @@ protected:
     
 	void AddFileMenu();
 	void AddEditMenu();
+	void AddRunMenu();
 	void AddWindowMenu();
 	void AddHelpMenu();
 	
@@ -267,6 +270,8 @@ protected:
 	void SaveDimensions();
 	void SaveVisibility();
 	void RestoreFromPrefs();
+
+	bool exitOnUserConfirm();
 
 public slots:
     void timeStep();
@@ -278,7 +283,11 @@ private slots:
     void save() {}
     void saveAs() {}
     void about() {}    
-    void windowsMenuAboutToShow();    
+    void windowsMenuAboutToShow();
+
+	// Run menu
+	void endAtTimestep();
+	void endNow();
     
     // Window menu
     void ToggleEnergyWindow();
@@ -364,9 +373,12 @@ public:
 //	short OverHeadRank( void );
 	
 	void PopulateStatusList(TStatusList& list);
+
+	long GetMaxSteps() const;
 	
 	void Step();
 	void End( const std::string &reason );
+	std::string EndAt( long timestep );
 	void Update();
 
 	bool fLockStepWithBirthsDeathsLog;	// Are we running in lockstep mode?
@@ -671,6 +683,9 @@ private:
 	long fMateWait;
 	long fMiscAgents; // number of agents born without intervening creation before miscegenation function kicks in
 	float fMateThreshold;
+	float fMaxEatVelocity;
+	float fMaxEatYaw;
+	EatStatistics fEatStatistics;
 	long fEatMateSpan;
 	float fFightThreshold;
 	float fFightFraction;
@@ -687,6 +702,7 @@ private:
 	long fNumberDiedFight;
 	long fNumberDiedEdge;
 	long fNumberDiedSmite;
+	long fNumberDiedPatch;
 	long fNumberCreated;
 	long fNumberCreatedRandom;
 	long fNumberCreated1Fit;
@@ -789,6 +805,8 @@ private:
     TSetList fWorldSet;	
     gscene fScene;
     gscene fOverheadScene;
+
+	condprop::PropertyList fConditionalProps;
 };
 
 inline gcamera& TSimulation::GetCamera() { return fCamera; }
@@ -807,6 +825,7 @@ inline TTextStatusWindow* TSimulation::GetStatusWindow() const { return fTextSta
 inline long TSimulation::GetMaxAgents() const { return fMaxNumAgents; }
 //inline short TSimulation::OverHeadRank( void ) { return fOverHeadRank; }
 inline long TSimulation::GetInitNumAgents() const { return fInitNumAgents; }
+inline long TSimulation::GetMaxSteps() const { return fMaxSteps; }
 inline float TSimulation::EnergyFitnessParameter() const { return fEnergyFitnessParameter; }
 inline float TSimulation::AgeFitnessParameter() const { return fAgeFitnessParameter; }
 inline float TSimulation::LifeFractionRecent() { return fLifeFractionRecentStats.mean(); }
