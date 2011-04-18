@@ -1,3 +1,4 @@
+#|
 (define Ne 800)
 (define Ni 200)
 (define re (map (lambda (_) (random 1.0))
@@ -23,11 +24,14 @@
                          (- 8 (* 6 (expt i 2))))
                        re)
                   (make-list Ni 2)))
+|#
 
 (define a 0.02)
 (define b 0.2)
 (define c -65)
 (define d 2)
+(define v -65)
+(define u (* b v))
 ;;(define S (append (map (lambda (_)
 ;;                         (* 0.5 
 ;;
@@ -38,5 +42,24 @@
                                140
                                (- u)
                                I))))))
-    (cons (step u (step u v I) I)
-          (+ u (* a (- (* b v) u))))))
+    (let ((newv (step u (step u v I) I)))
+      (cons newv
+            (+ u (* a (- (* b newv) u)))))))
+
+(define test
+  (lambda (u v n)
+    (letrec ((loop
+               (lambda (u v i)
+                 (cond
+                   [(= i n) #t]
+                   [(> v 30) (loop (+ u d)
+                                   c i)]
+                   [else (begin
+                           (printf "~d\n" v)
+                           (let ((res (izhikevich u v (* 10 (sin i)))))
+                             (loop (cdr res)
+                                   (car res)
+                                   (add1 i))))]))))
+      (loop u v 0))))
+(test u v 1000)
+
