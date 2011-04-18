@@ -608,3 +608,38 @@ void SpikingModel::update( bool bprint )
 	}
 #endif
 }
+
+// This function runs izhikevich's spiking model formula on the
+// given neuron with the given activation, and updates the
+// neuron's value.
+// see Izhikevich's net.m
+static void SpikingModel::izhikevich(
+        Neuron n,
+        float activation )
+{
+    float v = n.v;
+    float u = n.u;
+    // step 0.5 ms for numerical stability
+    v = v + 0.5 * (0.04 * v * v) + 5*v + 140 - u + activation;
+    v = v + 0.5 * (0.04 * v * v) + 5*v + 140 - u + activation;
+
+    u = u + n.SpikingParameter_a * (n.SpikingParameter_b * v - u);
+
+    n.v = v;
+    n.u = u;
+}
+
+static void SpikingModel::test()
+{
+    Neuron testNeuron;
+    testNeuron.v = -65.0f;
+    testNeuron.SpikingParameter_a = 0.02;
+    testNeuron.SpikingParameter_b = 0.2;
+    testNeuron.SpikingParameter_c = -65.0;
+    testNeuron.SpikingParameter_d = 2.0;
+    testNeuron.u = testNeuron.v * testNeuron.SpikingParameter_b;
+    for(int i = 0; i < 1000; i++) {
+        izhikevich(testNeuron, sin((double)i));
+    }
+    cout << testNeuron.v << endl;
+}

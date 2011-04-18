@@ -1,6 +1,6 @@
 // Self
 #include "PWApp.h"
-//#include "SceneView.h"
+//#include "SceneView.h"i
 
 #include <limits.h>
 
@@ -29,10 +29,11 @@
 #include "SceneView.h"
 #include "Simulation.h"
 
-//#define UNIT_TESTS
+#define UNIT_TESTS
 
 #ifdef UNIT_TESTS
 #include "AbstractFile.h"
+#include "SpikingModel.h"
 #endif
 
 //===========================================================================
@@ -43,6 +44,7 @@ int main(int argc, char** argv)
 {
 #ifdef UNIT_TESTS
 	AbstractFile::test();
+    SpikingModel::test();
 
 	printf("done with unit tests.\n");
 
