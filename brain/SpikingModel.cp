@@ -613,7 +613,7 @@ void SpikingModel::update( bool bprint )
 // given neuron with the given activation, and updates the
 // neuron's value.
 // see Izhikevich's net.m
-static void SpikingModel::izhikevich(
+void SpikingModel::izhikevich(
         Neuron n,
         float activation )
 {
@@ -629,7 +629,7 @@ static void SpikingModel::izhikevich(
     n.u = u;
 }
 
-static void SpikingModel::test()
+void SpikingModel::test()
 {
     Neuron testNeuron;
     testNeuron.v = -65.0f;
