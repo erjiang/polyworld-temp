@@ -5,7 +5,7 @@ d=2;
 
 v=-65;
 u=b*v;
-for t=0:999
+for t=0:1000
     % disp(v);
     I=sin(t)*10;
     fprintf('loop %f %f %d %f\n', u, v, t, I)

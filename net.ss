@@ -61,5 +61,5 @@
                                    (car res)
                                    (add1 i))))]))))
       (loop u v 0))))
-(test u v 1000)
+(test u v 1001)
 
