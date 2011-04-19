@@ -336,10 +336,8 @@ void SpikingModel::update( bool bprint )
 			//I have learned not to mess with things in he does that you don't understand.  Obviously there
 			//is a reason he does it this way.
 			
-			neuron[i].v = v + (.5 * ((0.04 * v * v) + (5 * v) + 140-neuron[i].u + newneuronactivation[i]));
-//change later all v should be neuron[i].v otherwise it is the same assignment as above....dummy!
-//			neuron[i].v = v + (.5 * ((0.04 * v * v) + (5 * v) + 140-neuron[i].u + newneuronactivation[i]));
-			neuron[i].u += neuron[i].SpikingParameter_a * (neuron[i].SpikingParameter_b * v - neuron[i].u);
+			// do a 1ms timestep of Izhikevich's spiking-neuron formula
+			izhikevich(&neuron[i], newneuronactivation[i]);
 					
 			//##############################################################################################################
 			//If the membrane potetial is high enough that means an action potential will be generated.  Here we have a 
@@ -639,10 +637,16 @@ void SpikingModel::test()
     testNeuron.SpikingParameter_d = 2.0;
     testNeuron.u = testNeuron.v * testNeuron.SpikingParameter_b;
     for(int i = 0; i < 1000; i++) {
+        //printf("loop\t%f\t%f\t%d\t%f\n", testNeuron.u, testNeuron.v, i, sin(i)*10);
         if(testNeuron.v >= 30) {
             testNeuron.v = testNeuron.SpikingParameter_c;
             testNeuron.u += testNeuron.SpikingParameter_d;
         }
         izhikevich(&testNeuron, sin(i)*10);
     }
+#define FINAL_RESULT  -73.2444
+#define FINAL_EPSILON 0.001
+    double deviation = testNeuron.v - FINAL_RESULT;
+    deviation = deviation < 0 ? -1 * deviation : deviation;
+    assert(deviation < FINAL_EPSILON);
 }

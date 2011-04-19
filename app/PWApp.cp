@@ -1,6 +1,6 @@
 // Self
 #include "PWApp.h"
-//#include "SceneView.h"i
+//#include "SceneView.h"
 
 #include <limits.h>
 
@@ -29,7 +29,7 @@
 #include "SceneView.h"
 #include "Simulation.h"
 
-#define UNIT_TESTS
+//#define UNIT_TESTS
 
 #ifdef UNIT_TESTS
 #include "AbstractFile.h"
