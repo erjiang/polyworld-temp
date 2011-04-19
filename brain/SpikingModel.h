@@ -65,7 +65,7 @@ class SpikingModel : public BaseNeuronModel<SpikingModel__Neuron, SpikingModel__
 	virtual void load( std::istream &in );
 
 	virtual void update( bool bprint );
-    static void izhikevich( Neuron n, float activation );
+    static void izhikevich( SpikingModel__Neuron* n, float activation );
     static void test();
 
  private:
@@ -79,4 +79,4 @@ class SpikingModel : public BaseNeuronModel<SpikingModel__Neuron, SpikingModel__
     genome::Gene *spikingGeneB;
     genome::Gene *spikingGeneC;
     genome::Gene *spikingGeneD;
-;
+};
