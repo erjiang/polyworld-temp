@@ -79,4 +79,4 @@ class SpikingModel : public BaseNeuronModel<SpikingModel__Neuron, SpikingModel__
     genome::Gene *spikingGeneB;
     genome::Gene *spikingGeneC;
     genome::Gene *spikingGeneD;
-;
+};
