@@ -620,8 +620,8 @@ void SpikingModel::izhikevich(
     float v = n.v;
     float u = n.u;
     // step 0.5 ms for numerical stability
-    v = v + 0.5 * (0.04 * v * v) + 5*v + 140 - u + activation;
-    v = v + 0.5 * (0.04 * v * v) + 5*v + 140 - u + activation;
+    v = v + 0.5 * (0.04 * v * v + 5*v + 140 - u + activation);
+    v = v + 0.5 * (0.04 * v * v + 5*v + 140 - u + activation);
 
     u = u + n.SpikingParameter_a * (n.SpikingParameter_b * v - u);
 
@@ -639,7 +639,7 @@ void SpikingModel::test()
     testNeuron.SpikingParameter_d = 2.0;
     testNeuron.u = testNeuron.v * testNeuron.SpikingParameter_b;
     for(int i = 0; i < 1000; i++) {
-        izhikevich(testNeuron, sin((double)i));
+        izhikevich(testNeuron, sin(i)*10);
     }
     cout << testNeuron.v << endl;
 }

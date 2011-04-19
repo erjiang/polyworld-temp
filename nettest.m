@@ -6,9 +6,9 @@ d=2;
 v=-65;
 u=b*v;
 for t=0:999
-    % fprintf('loop %f %f %d\n', u, v, t)
-    disp(v);
+    % disp(v);
     I=sin(t)*10;
+    fprintf('loop %f %f %d %f\n', u, v, t, I)
     if(v >= 30)
         disp("spike");
         v=  c;
