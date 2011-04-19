@@ -614,24 +614,24 @@ void SpikingModel::update( bool bprint )
 // neuron's value.
 // see Izhikevich's net.m
 void SpikingModel::izhikevich(
-        Neuron n,
+        SpikingModel__Neuron* n,
         float activation )
 {
-    float v = n.v;
-    float u = n.u;
+    float v = n->v;
+    float u = n->u;
     // step 0.5 ms for numerical stability
-    v = v + 0.5 * (0.04 * v * v + 5*v + 140 - u + activation);
-    v = v + 0.5 * (0.04 * v * v + 5*v + 140 - u + activation);
+    v = v + 0.5 * (0.04*v*v + 5*v + 140 - u + activation);
+    v = v + 0.5 * (0.04*v*v + 5*v + 140 - u + activation);
 
-    u = u + n.SpikingParameter_a * (n.SpikingParameter_b * v - u);
+    u = u + n->SpikingParameter_a * (n->SpikingParameter_b * v - u);
 
-    n.v = v;
-    n.u = u;
+    n->v = v;
+    n->u = u;
 }
 
 void SpikingModel::test()
 {
-    Neuron testNeuron;
+    SpikingModel__Neuron testNeuron;
     testNeuron.v = -65.0f;
     testNeuron.SpikingParameter_a = 0.02;
     testNeuron.SpikingParameter_b = 0.2;
@@ -639,7 +639,10 @@ void SpikingModel::test()
     testNeuron.SpikingParameter_d = 2.0;
     testNeuron.u = testNeuron.v * testNeuron.SpikingParameter_b;
     for(int i = 0; i < 1000; i++) {
-        izhikevich(testNeuron, sin(i)*10);
+        if(testNeuron.v >= 30) {
+            testNeuron.v = testNeuron.SpikingParameter_c;
+            testNeuron.u += testNeuron.SpikingParameter_d;
+        }
+        izhikevich(&testNeuron, sin(i)*10);
     }
-    cout << testNeuron.v << endl;
 }
