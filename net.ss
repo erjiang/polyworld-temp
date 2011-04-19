@@ -55,7 +55,7 @@
                    [(> v 30) (loop (+ u d)
                                    c i)]
                    [else (begin
-                           (printf "~d\n" v)
+                           (printf "loop\t~s\t~s\t~s\t~s\n" u v i (sin i))
                            (let ((res (izhikevich u v (* 10 (sin i)))))
                              (loop (cdr res)
                                    (car res)
