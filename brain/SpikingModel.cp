@@ -313,7 +313,6 @@ void SpikingModel::update( bool bprint )
 
 			}
 			
-			v = neuron[i].v;                        //get the current membrane potential
 		
 			//test to see if a spike had previously occured. If it did set a flag saying it just spiked
 			//then reset the membrane potential and recovery variable. 	
@@ -321,10 +320,10 @@ void SpikingModel::update( bool bprint )
 			{										  
 				neuron[i].v =  neuron[i].SpikingParameter_c;	  //reset the membrane potential
 				neuron[i].u += neuron[i].SpikingParameter_d;	  //reset the recovery variable
-				v = neuron[i].v;			
 			}	
 				
-			u=neuron[i].u;
+			v = neuron[i].v;                        //get the current membrane potential
+			u = neuron[i].u;
 			
 #if USE_BIAS			
 			//stochastically generate bias
