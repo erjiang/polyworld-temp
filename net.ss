@@ -23,17 +23,21 @@
 (define test
   (lambda (u v n)
     (letrec ((loop
-               (lambda (u v i)
+               (lambda (u v i spikes)
                  (cond
-                   ((= i n) #t)
-                   ((> v 30) (loop (+ u d)
-                                   c i))
+                   ((= i n) spikes)
+                   ((> v 30) (begin
+                               (format #t "spike\n")
+                               (loop (+ u d)
+                                     c i (cons i spikes))))
                    (else (begin
-                           (format #t "loop\t~s\t~s\t~s\t~s\n" u v i (sin i))
-                           (let ((res (izhikevich u v (* 10 (sin i)))))
+                           (format #t "loop\t~10,8f\t~10,8f\t~d\t~f\n" u v i (* 10 (sin (/ i 100))))
+                           (let ((res (izhikevich u v (* 10 (sin (/ i 100))))))
                              (loop (cdr res)
                                    (car res)
-                                   (+ 1 i)))))))))
-      (loop u v 0))))
-(test u v 1001)
-
+                                   (+ 1 i)
+                                   spikes))))))))
+      (loop u v 0 '()))))
+(let ((spikes (test u v 1001)))
+  (format #t "spikes: ")
+  (for-each (lambda (d) (format #t " ~d" d)) spikes))

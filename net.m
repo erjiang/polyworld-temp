@@ -13,8 +13,9 @@ u=b.*v;                 % Initial values of u
 firings=[];             % spike timings
 
 for t=1:1000            % simulation of 1000 ms
-  I=[5*randn(Ne,1);2*randn(Ni,1)]; % thalamic input
   fired=find(v>=30);    % indices of spikes
+  disp I(fired);
+  I=[5*randn(Ne,1);2*randn(Ni,1)]; % thalamic input
   firings=[firings; t+0*fired,fired];
   v(fired)=c(fired);
   u(fired)=u(fired)+d(fired);

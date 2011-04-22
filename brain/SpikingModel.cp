@@ -313,27 +313,11 @@ void SpikingModel::update( bool bprint )
 
 			}
 			
-		
-			//test to see if a spike had previously occured. If it did set a flag saying it just spiked
-			//then reset the membrane potential and recovery variable. 	
-			if (v>=30.)
-			{										  
-				neuron[i].v =  neuron[i].SpikingParameter_c;	  //reset the membrane potential
-				neuron[i].u += neuron[i].SpikingParameter_d;	  //reset the recovery variable
-			}	
-				
-			v = neuron[i].v;                        //get the current membrane potential
-			u = neuron[i].u;
-			
 #if USE_BIAS			
 			//stochastically generate bias
 			if (rng->drand() < (1.0 / (1.0 + exp(-1 * neuron[i].bias * .5))))
 				newneuronactivation[i] += BIAS_INJECTED_VOLTAGE;
 #endif
-			
-			//Calculate Izhikevich's formula for voltage.  I don't understand why he does it twice, but 
-			//I have learned not to mess with things in he does that you don't understand.  Obviously there
-			//is a reason he does it this way.
 			
 			// do a 1ms timestep of Izhikevich's spiking-neuron formula
 			izhikevich(&neuron[i], newneuronactivation[i]);
@@ -616,6 +600,10 @@ void SpikingModel::izhikevich(
 {
     float v = n->v;
     float u = n->u;
+    if(v >= 30) {
+        v = n.SpikingParameter_c;
+        u += n.SpikingParameter_d;
+    }
     // step 0.5 ms for numerical stability
     v = v + 0.5 * (0.04*v*v + 5*v + 140 - u + activation);
     v = v + 0.5 * (0.04*v*v + 5*v + 140 - u + activation);
@@ -637,13 +625,15 @@ void SpikingModel::test()
     testNeuron.u = testNeuron.v * testNeuron.SpikingParameter_b;
     for(int i = 0; i < 1000; i++) {
         //printf("loop\t%f\t%f\t%d\t%f\n", testNeuron.u, testNeuron.v, i, sin(i)*10);
+        izhikevich(&testNeuron, sin(i/100)*10);
+
         if(testNeuron.v >= 30) {
-            testNeuron.v = testNeuron.SpikingParameter_c;
-            testNeuron.u += testNeuron.SpikingParameter_d;
+            printf("spike at %d\n", i);
         }
-        izhikevich(&testNeuron, sin(i)*10);
     }
-#define FINAL_RESULT  -73.2444
+
+// FINAL_RESULT is final value from Octave
+#define FINAL_RESULT  -76.21293584
 #define FINAL_EPSILON 0.001
     double deviation = testNeuron.v - FINAL_RESULT;
     deviation = deviation < 0 ? -1 * deviation : deviation;
