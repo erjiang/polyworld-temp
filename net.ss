@@ -27,7 +27,7 @@
                  (cond
                    ((= i n) spikes)
                    ((> v 30) (begin
-                               (format #t "spike\n")
+                               (format #t "spike at ~a\n" i)
                                (loop (+ u d)
                                      c i (cons i spikes))))
                    (else (begin

@@ -10,7 +10,7 @@ for t=0:1000
     % disp(v);
     I=sin(t/100)*10;
     if(v >= 30)
-        disp("spike");
+        fprintf('spike at %d\n', t);
         spikes=[t; spikes];
         v=  c;
         u=u+d;

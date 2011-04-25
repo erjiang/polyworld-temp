@@ -201,7 +201,7 @@ void SpikingModel::update( bool bprint )
 	static long loop_counter=0;
     short i, j, n_steps;
     long k;
-	float u,v,activation;
+	float activation;
     if ((neuron == NULL) || (synapse == NULL) || (neuronactivation == NULL))
         return;
 	int outputNeuronFiringCounter[dims->numOutputNeurons];
@@ -601,8 +601,8 @@ void SpikingModel::izhikevich(
     float v = n->v;
     float u = n->u;
     if(v >= 30) {
-        v = n.SpikingParameter_c;
-        u += n.SpikingParameter_d;
+        v = n->SpikingParameter_c;
+        u += n->SpikingParameter_d;
     }
     // step 0.5 ms for numerical stability
     v = v + 0.5 * (0.04*v*v + 5*v + 140 - u + activation);
@@ -625,7 +625,7 @@ void SpikingModel::test()
     testNeuron.u = testNeuron.v * testNeuron.SpikingParameter_b;
     for(int i = 0; i < 1000; i++) {
         //printf("loop\t%f\t%f\t%d\t%f\n", testNeuron.u, testNeuron.v, i, sin(i)*10);
-        izhikevich(&testNeuron, sin(i/100)*10);
+        izhikevich(&testNeuron, sin((double)i/100.0)*10.0);
 
         if(testNeuron.v >= 30) {
             printf("spike at %d\n", i);
@@ -635,6 +635,7 @@ void SpikingModel::test()
 // FINAL_RESULT is final value from Octave
 #define FINAL_RESULT  -76.21293584
 #define FINAL_EPSILON 0.001
+
     double deviation = testNeuron.v - FINAL_RESULT;
     deviation = deviation < 0 ? -1 * deviation : deviation;
     assert(deviation < FINAL_EPSILON);
