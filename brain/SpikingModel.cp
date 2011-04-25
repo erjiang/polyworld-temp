@@ -598,8 +598,8 @@ void SpikingModel::izhikevich(
         SpikingModel__Neuron* n,
         float activation )
 {
-    float v = n->v;
-    float u = n->u;
+    double v = n->v;
+    double u = n->u;
     if(v >= 30) {
         v = n->SpikingParameter_c;
         u += n->SpikingParameter_d;
